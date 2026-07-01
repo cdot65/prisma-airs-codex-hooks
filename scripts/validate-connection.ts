@@ -24,7 +24,7 @@ async function main() {
   const result = await scanner.syncScan(
     { profile_name: config.profiles.prompt },
     content,
-    { metadata: { app_name: "cursor-ide", app_user: "validation-script" } },
+    { metadata: { app_name: "codex-cli", app_user: "validation-script" } },
   );
   const latencyMs = Date.now() - start;
 

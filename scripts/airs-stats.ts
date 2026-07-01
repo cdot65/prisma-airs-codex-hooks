@@ -5,6 +5,7 @@
  */
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { homedir } from "node:os";
 
 interface LogEntry {
   timestamp: string;
@@ -39,9 +40,13 @@ function main() {
   const sinceIdx = args.indexOf("--since");
   const sinceMs = sinceIdx >= 0 ? parseSince(args[sinceIdx + 1]) : 24 * 60 * 60 * 1000;
 
-  const logPath = resolve(process.cwd(), ".cursor", "hooks", "airs-scan.log");
-  if (!existsSync(logPath)) {
-    console.log("No log file found at", logPath);
+  const candidates = [
+    resolve(process.cwd(), ".codex", "hooks", "airs-scan.log"),
+    resolve(homedir(), ".codex", "hooks", "airs-scan.log"),
+  ];
+  const logPath = candidates.find((p) => existsSync(p));
+  if (!logPath) {
+    console.log("No log file found at", candidates.join(" or "));
     process.exit(0);
   }
 
