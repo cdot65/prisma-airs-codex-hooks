@@ -40,6 +40,22 @@ export const AIRS_HOOK_SPECS: AirsHookSpec[] = [
   },
 ];
 
+/**
+ * Codex executes hook commands with a system PATH, so nvm/asdf-managed node
+ * is not resolvable as bare "node" (exit 127). Commands always embed the
+ * absolute node binary (process.execPath at install time).
+ */
+
+/** Project-scope command: git-root resolution keeps it stable from subdirs */
+export function projectHookCommand(bundle: string, nodeBin: string): string {
+  return `"${nodeBin}" "$(git rev-parse --show-toplevel)/.codex/hooks/${bundle}"`;
+}
+
+/** Global-scope command: fully absolute paths */
+export function globalHookCommand(bundle: string, nodeBin: string, hooksDir: string): string {
+  return `"${nodeBin}" "${hooksDir}/${bundle}"`;
+}
+
 function buildGroup(spec: AirsHookSpec, commandFor: (bundle: string) => string): CodexHookMatcherGroup {
   return {
     ...(spec.matcher ? { matcher: spec.matcher } : {}),
