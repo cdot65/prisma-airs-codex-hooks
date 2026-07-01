@@ -35,25 +35,25 @@ Hooks ship as self-contained minified bundles (~125 KB each, esbuild) that run w
 ## Quick start
 
 ```bash
-# 1. Install
+# 1. Install (pnpm workspace — corepack picks up the pinned pnpm version)
 git clone https://github.com/cdot65/prisma-airs-codex-hooks.git
 cd prisma-airs-codex-hooks
-npm install && npm run build
+pnpm install && pnpm build
 
 # 2. Configure environment (shell profile)
 export PRISMA_AIRS_API_KEY="your-x-pan-token"
 export PRISMA_AIRS_PROFILE_NAME="your-security-profile"
 
 # 3. Install hooks
-npm run install-hooks              # project-level (<git-root>/.codex/)
-npm run install-hooks -- --global  # or user-level (~/.codex/)
+pnpm install-hooks              # project-level (<git-root>/.codex/)
+pnpm install-hooks --global     # or user-level (~/.codex/)
 
 # 4. Trust the hooks
 #    Open Codex and run /hooks to review + trust the new hook definitions.
 
 # 5. Validate
-npm run validate-connection
-npm run verify-hooks
+pnpm validate-connection
+pnpm verify-hooks
 ```
 
 Codex hooks are enabled by default in current Codex versions. Older versions need:
@@ -93,15 +93,16 @@ All scans from one Codex session share an AIRS `session_id` (the Codex `session_
 ## Commands
 
 ```bash
-npm test                    # vitest suite
-npm run typecheck           # tsc --noEmit
-npm run build               # tsc + esbuild bundles
-npm run install-hooks       # [-- --global]
-npm run uninstall-hooks     # [-- --global]
-npm run verify-hooks        # tamper detection
-npm run validate-connection # AIRS connectivity
-npm run validate-detection  # detection smoke test
-npm run stats               # scan statistics from the JSONL log
+pnpm test                    # vitest suite
+pnpm typecheck               # tsc --noEmit
+pnpm build                   # tsc + esbuild bundles
+pnpm install-hooks           # [--global]
+pnpm uninstall-hooks         # [--global]
+pnpm verify-hooks            # tamper detection
+pnpm validate-connection     # AIRS connectivity
+pnpm validate-detection      # detection smoke test
+pnpm stats                   # scan statistics from the JSONL log
+pnpm docs:serve              # Docusaurus dev server (docs-site/)
 ```
 
 ## Limitations
