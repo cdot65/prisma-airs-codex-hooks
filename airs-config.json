@@ -1,0 +1,37 @@
+{
+  "endpoint": "${PRISMA_AIRS_API_ENDPOINT}",
+  "apiKeyEnvVar": "PRISMA_AIRS_API_KEY",
+  "profiles": {
+    "prompt": "${PRISMA_AIRS_PROMPT_PROFILE}",
+    "response": "${PRISMA_AIRS_RESPONSE_PROFILE}",
+    "tool": "${PRISMA_AIRS_TOOL_PROFILE}"
+  },
+  "mode": "enforce",
+  "timeout_ms": 3000,
+  "retry": {
+    "enabled": true,
+    "max_attempts": 1,
+    "backoff_base_ms": 200
+  },
+  "logging": {
+    "path": "~/.cursor/hooks/airs-scan.log",
+    "include_content": false
+  },
+  "enforcement": {
+    "prompt_injection": "block",
+    "dlp": "block",
+    "malicious_code": "block",
+    "url_categorization": "block",
+    "toxicity": "block",
+    "custom_topic": "block"
+  },
+  "circuit_breaker": {
+    "enabled": true,
+    "failure_threshold": 5,
+    "cooldown_ms": 60000
+  },
+  "content_limits": {
+    "max_scan_bytes": 51200,
+    "truncate_bytes": 20000
+  }
+}
