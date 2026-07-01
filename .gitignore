@@ -22,8 +22,9 @@ Thumbs.db
 # Test coverage
 coverage/
 
-# MkDocs build output
-site/
+# Docusaurus build output
+docs-site/build/
+docs-site/.docusaurus/
 
 # Claude Code session files
 .claude/

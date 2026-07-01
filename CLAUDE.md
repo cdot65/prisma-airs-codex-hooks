@@ -17,7 +17,7 @@ Published as `@cdot65/prisma-airs-codex-hooks` on npm.
 - **Build:** esbuild → single-file minified `.mjs` bundles per hook (self-contained, SDK bundled); tsc for typecheck
 - **Test framework:** vitest
 - **Package manager:** npm
-- **Docs:** MkDocs Material
+- **Docs:** Docusaurus (docs-site/, deployed to GitHub Pages)
 - **CI:** GitHub Actions (typecheck, build, test, docs-build)
 - **Publish:** npm OIDC via GitHub Actions on release
 
