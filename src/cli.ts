@@ -11,13 +11,14 @@
  *   prisma-airs-codex-hooks stats [--since <duration>] [--json]
  */
 
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
+import { createRequire } from "node:module";
 import { resolve, join } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const args = process.argv.slice(2);
 const command = args[0];
-const passthrough = args.slice(1).join(" ");
+const passthrough = args.slice(1);
 
 const COMMANDS: Record<string, string> = {
   install: "scripts/install-hooks.ts",
@@ -54,10 +55,16 @@ if (!script) {
   process.exit(1);
 }
 
+// Resolve the tsx runner from this package's own dependencies so the CLI
+// works from any directory (incl. global installs, where `npx tsx` would
+// fall back to fetching). The child inherits the INVOKING cwd — install/
+// verify/uninstall/stats all resolve .codex relative to the user's repo.
+const tsxCli = createRequire(import.meta.url).resolve("tsx/cli");
+
 try {
-  execSync(`npx tsx "${join(ROOT, script)}" ${passthrough}`, {
+  execFileSync(process.execPath, [tsxCli, join(ROOT, script), ...passthrough], {
     stdio: "inherit",
-    cwd: ROOT,
+    cwd: process.cwd(),
     env: process.env,
   });
 } catch {
