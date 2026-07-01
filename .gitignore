@@ -29,5 +29,5 @@ docs-site/.docusaurus/
 # Claude Code session files
 .claude/
 
-# Codex hooks runtime
-.codex/hooks/*.log
+# Codex hooks local install (machine-specific hooks.json + copied bundles)
+.codex/
