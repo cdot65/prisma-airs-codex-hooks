@@ -3,7 +3,7 @@
 ## Running Tests
 
 ```bash
-npm test              # all 66 tests, 9 suites
+npm test              # all 144 tests, 14 suites
 npm run test:watch    # watch mode with re-run on change
 ```
 
@@ -11,31 +11,38 @@ npm run test:watch    # watch mode with re-run on change
 
 | Suite | Tests | What It Covers |
 |-------|-------|---------------|
-| `config.test.ts` | 10 | Config loading, validation, env var resolution, defaults |
-| `airs-client.test.ts` | 5 | SDK wrapper, prompt/response scanning, block verdicts |
-| `scanner.test.ts` | 10 | Observe/enforce/bypass modes, UX messages, fail-open |
+| `config.test.ts` | 22 | Config loading, validation, env var resolution, `.codex` path walk-up, `fail_mode`, `readFailMode` |
+| `airs-client.test.ts` | 9 | SDK wrapper, prompt/response scanning, block verdicts |
+| `scanner.test.ts` | 21 | Observe/enforce/bypass modes, UX messages, fail-open/fail-closed, correlation pass-through |
 | `code-extractor.test.ts` | 10 | Fenced, indented, heuristic extraction, mixed content |
+| `codex-adapter.test.ts` | 6 | Exact Codex stdout shapes per event (block/deny/stop) |
+| `tool-name-parser.test.ts` | 11 | `mcp__server__tool` parsing, `isMcpToolName` |
+| `hooks-config.test.ts` | 10 | `hooks.json` build/merge/remove, idempotency, foreign-hook preservation |
 | `circuit-breaker.test.ts` | 7 | State transitions, cooldown, probe success/failure |
+| `content-limits.test.ts` | 6 | Skip/truncate thresholds |
 | `dlp-masking.test.ts` | 8 | Enforcement priority, content masking |
 | `logger.test.ts` | 5 | JSON Lines output, content stripping, directory creation |
 | `log-rotation.test.ts` | 3 | Size threshold, rotation, missing file handling |
-| `hooks-integration.test.ts` | 8 | End-to-end Cursor JSON contract (tsx + compiled JS) |
+| `hooks-integration.test.ts` | 21 | End-to-end Codex JSON contract (tsx + compiled JS) |
+| `bundles.test.ts` | 5 | Standalone bundle runs from a temp dir, size budget |
 
 ## Integration Tests
 
 The `hooks-integration.test.ts` suite runs actual hook scripts with piped JSON:
 
 ```typescript
-// Runs: echo '{"prompt":"..."}' | npx tsx src/hooks/before-submit-prompt.ts
-// And:  echo '{"prompt":"..."}' | node dist/hooks/before-submit-prompt.js
+// Runs: echo '{"prompt":"..."}' | npx tsx src/hooks/user-prompt-submit.ts
+// And:  echo '{"prompt":"..."}' | node dist/hooks/user-prompt-submit.js
 ```
 
-These verify the real Cursor contract end-to-end, including JSON parsing, config loading, fail-open behavior, and correct output format.
+These verify the real Codex contract end-to-end, including JSON parsing, config loading, fail-open and fail-closed behavior, the `PreToolUse` silent-allow rule, and the `Stop` JSON-only stdout rule.
+
+The `bundles.test.ts` suite goes one step further: it spawns each minified `dist/hooks/*.mjs` bundle from an OS temp directory with no `node_modules` or `NODE_PATH` available, proving the bundles are genuinely self-contained.
 
 ## Mocking
 
-- **AIRS API**: Not mocked in integration tests -- hooks fail-open when the API is unreachable, which validates the fail-open design
-- **SDK**: Mocked via `vi.mock("@cdot65/prisma-airs-sdk")` in unit tests (`airs-client.test.ts`, `scanner.test.ts`)
+- **AIRS API**: Not mocked in integration tests -- hooks fail-open when the API is unreachable, which validates the fail-mode design
+- **SDK**: Mocked via `vi.mock("@cdot65/prisma-airs-sdk")` in unit tests (`airs-client.test.ts`); the scanner suite mocks `src/airs-client.ts`
 - **File system**: Tests use temporary directories (`test/.tmp-*`) cleaned up in `afterEach`
 
 ## Adding Tests
@@ -43,4 +50,4 @@ These verify the real Cursor contract end-to-end, including JSON parsing, config
 1. Create `test/<module>.test.ts` matching the source file
 2. Use vitest's `describe`/`it`/`expect` API
 3. Clean up any temp files in `afterEach`
-4. For integration tests, use `execSync` to run hooks with piped JSON
+4. For integration tests, use `spawnSync` to run hooks with piped JSON

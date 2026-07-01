@@ -19,18 +19,24 @@ Complete reference for `airs-config.json`.
 ### `profiles`
 
 - **Type:** `{ prompt: string, response: string, tool?: string }`
-- **Description:** AIRS security profile names for prompt, response, and tool scanning. All three default to `PRISMA_AIRS_PROFILE_NAME` (or `Cursor IDE - Hooks` if unset). Use per-direction env vars only when you need different profiles for different scan types.
+- **Description:** AIRS security profile names for prompt, response, and tool scanning. All three default to `PRISMA_AIRS_PROFILE_NAME` (or `Codex CLI - Hooks` if unset). Use per-direction env vars only when you need different profiles for different scan types.
 
 | Field | Env Var (override) | Fallback |
 |-------|---------|---------|
-| `profiles.prompt` | `PRISMA_AIRS_PROMPT_PROFILE` | `PRISMA_AIRS_PROFILE_NAME` → `Cursor IDE - Hooks` |
-| `profiles.response` | `PRISMA_AIRS_RESPONSE_PROFILE` | `PRISMA_AIRS_PROFILE_NAME` → `Cursor IDE - Hooks` |
-| `profiles.tool` | `PRISMA_AIRS_TOOL_PROFILE` | `PRISMA_AIRS_PROFILE_NAME` → `Cursor IDE - Hooks` |
+| `profiles.prompt` | `PRISMA_AIRS_PROMPT_PROFILE` | `PRISMA_AIRS_PROFILE_NAME` → `Codex CLI - Hooks` |
+| `profiles.response` | `PRISMA_AIRS_RESPONSE_PROFILE` | `PRISMA_AIRS_PROFILE_NAME` → `Codex CLI - Hooks` |
+| `profiles.tool` | `PRISMA_AIRS_TOOL_PROFILE` | `PRISMA_AIRS_PROFILE_NAME` → `Codex CLI - Hooks` |
 
 ### `mode`
 
 - **Type:** `"observe" | "enforce" | "bypass"`
 - **Description:** Scanning mode. See [Modes](../getting-started/configuration.md#modes).
+
+### `fail_mode`
+
+- **Type:** `"open" | "closed"`
+- **Default:** `"open"`
+- **Description:** Behavior when scanning fails (AIRS unreachable, config errors). `open` never blocks on errors; `closed` blocks prompts and MCP tool calls when the scan cannot complete. The `Stop` hook (response scanning) is always fail-open because the response has already streamed.
 
 ### `timeout_ms`
 
@@ -58,7 +64,7 @@ Complete reference for `airs-config.json`.
 
 ```json
 {
-  "path": "~/.cursor/hooks/airs-scan.log",
+  "path": "~/.codex/hooks/airs-scan.log",
   "include_content": false
 }
 ```
@@ -102,13 +108,13 @@ See [Circuit Breaker](../features/circuit-breaker.md).
 ```json
 {
   "max_scan_bytes": 51200,
-  "truncate_bytes": 20480
+  "truncate_bytes": 20000
 }
 ```
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `max_scan_bytes` | `number` | `51200` (50KB) | Inputs larger than this are skipped entirely (fail-open) |
-| `truncate_bytes` | `number` | `20480` (20KB) | Inputs above this threshold are truncated before scanning |
+| `truncate_bytes` | `number` | `20000` (20KB) | Inputs above this threshold are truncated before scanning |
 
-Applies to all scan paths including `beforeSubmitPrompt`, `beforeMCPExecution`, `postToolUse`, and `afterAgentResponse`. Prevents excessive latency and API errors for large tool outputs, Bash results, or multi-file reads.
+Applies to all scan paths: `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, and `Stop`. Prevents excessive latency and API errors for large MCP tool outputs or long responses.

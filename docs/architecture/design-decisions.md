@@ -1,63 +1,61 @@
 # Design Decisions
 
-## Fail-Open by Default
+## Configurable Fail Mode (Open by Default)
 
-Every error path resolves to allowing the prompt/response through. This includes:
+`fail_mode` in `airs-config.json` controls what happens when scanning itself fails (config missing, AIRS unreachable, timeout, circuit open):
 
-- Config file not found or invalid
-- AIRS API unreachable or timeout
-- JSON parse errors on stdin
-- Unhandled exceptions in hook code
-- Circuit breaker in open state
+- **`"open"` (default)** — every error path resolves to allowing the prompt/tool call through. Blocking a developer's workflow due to infrastructure issues is unacceptable; security scanning is a guardrail, not a gate.
+- **`"closed"`** — config and API errors block prompts (`UserPromptSubmit`) and MCP tool calls (`PreToolUse`). For environments where an unscanned prompt is worse than a stalled workflow.
 
-**Rationale:** Blocking a developer's workflow due to infrastructure issues is unacceptable. Security scanning is a guardrail, not a gate.
+The `Stop` hook is **always fail-open** regardless of `fail_mode`: the response has already been displayed, so blocking on error accomplishes nothing. stdin parse errors also always allow — malformed hook input is a bug, not a security event. The fail-closed intent survives config validation errors via a best-effort `readFailMode()` that reads only the `fail_mode` key.
 
-## Precompiled JS for Production
+## MCP-Only Tool Scanning
 
-Hooks run as fresh processes on every prompt/response. Using `node dist/*.js` instead of `npx tsx src/*.ts` eliminates ~1.5s of cold-start overhead per invocation.
+`PreToolUse` and `PostToolUse` register with the `mcp__.*` matcher — **local `Bash` commands and `apply_patch` file edits are intentionally not scanned**. MCP tools bring external, untrusted content (files from remote repos, API responses, web content) into the agent loop, which is where prompt injection and data exfiltration risk concentrates. Local shell and edit activity is the developer's own machine at work; scanning it adds an AIRS round-trip of latency to every command for little security signal. The hook entry points also skip non-MCP tool names internally as defense-in-depth.
 
-| Cost | `npx tsx` | `node dist/` |
-|------|-----------|--------------|
-| npx resolution | ~300ms | 0ms |
-| TypeScript transpile | ~1200ms | 0ms |
-| Module loading | ~200ms | ~200ms |
-| AIRS API call | ~600ms | ~600ms |
-| **Total** | **~2300ms** | **~800ms** |
+## PostToolUse Is Observe-Only by Policy
 
-## Separate Cursor Hook Contracts
+Codex **can** block at `PostToolUse` (it replaces the tool result with hook feedback and can stop processing with `continue: false`). This project chooses not to: the tool already executed, side effects can't be undone, and replacing results mid-turn is disruptive. Violations in MCP tool outputs are logged to the audit trail and warned on stderr instead. The blocking hooks — `UserPromptSubmit` and `PreToolUse` — are the enforcement gates.
 
-Cursor uses different output formats and enforcement capabilities for different hooks:
+- **Prompt scanning** (`UserPromptSubmit`) is a **gate** — prevents violations from reaching the agent
+- **MCP input scanning** (`PreToolUse`) is a **gate** — denies malicious tool invocations before execution
+- **MCP output scanning** (`PostToolUse`) is an **audit trail** — compliance evidence and alerting
+- **Response scanning** (`Stop`) is **audit + termination** — see below
 
-- `beforeSubmitPrompt` (**can block**): `{ "continue": true/false, "user_message": "..." }`
-- `beforeMCPExecution` (**can block**): `{ "continue": true/false, "user_message": "..." }`
-- `postToolUse` (**observe-only**): stdout is ignored by Cursor. The tool has already executed before the hook fires.
-- `afterAgentResponse` (**observe-only**): stdout is ignored by Cursor. The response is already displayed before the hook fires.
+## Stop Terminates on Block Verdict
 
-This was discovered through testing — `permission: "deny"` does not block prompts in `beforeSubmitPrompt`, and more critically, `postToolUse` and `afterAgentResponse` cannot block or hide content at all. See [Cursor Limitation](../reference/cursor-hooks-api.md#cursor-limitation-no-response-blocking) for the full list of blocking vs observe-only hooks.
+Codex has no streaming interception hook — the final response is fully displayed before `Stop` fires. When AIRS returns an `action: "block"` verdict for the response scan (in `enforce` mode), the hook returns `{ "continue": false, "stopReason": "..." }`: the displayed text can't be retracted, but the turn is terminated so the session doesn't keep building on flagged content. A `stop_hook_active` loop guard skips scanning when the turn was already continued by a Stop hook.
 
-## Response and Tool Output Scanning is Audit-Only
+## Codex Hook Contracts Differ Per Event
 
-Because Cursor's `afterAgentResponse` and `postToolUse` are observe-only, they serve different purposes than blocking hooks:
+Each Codex event has its own stdout contract, encoded in `src/adapters/codex-adapter.ts`:
 
-- **Prompt scanning** (`beforeSubmitPrompt`) is a **gate** — prevents violations from reaching the AI agent
-- **MCP scanning** (`beforeMCPExecution`) is a **gate** — prevents malicious tool invocations before execution
-- **Response/tool output scanning** (`afterAgentResponse`, `postToolUse`) is an **audit trail** — detects violations for compliance evidence, security alerting, and post-hoc analysis
+- `UserPromptSubmit` (**can block**): `{ "decision": "block", "reason": "..." }`; allow with `{ "continue": true }`
+- `PreToolUse` (**can deny**): `hookSpecificOutput.permissionDecision: "deny"` — it must **not** emit `continue`/`stopReason`/`suppressOutput` or Codex marks the hook run failed and lets the tool call proceed; allow is a silent exit 0
+- `PostToolUse` (**can block; we don't**): observe-only means no stdout at all
+- `Stop`: stdout **must** be JSON (plain text is invalid for this event) — `{ "continue": true }` or `{ "continue": false, "stopReason": "..." }`
 
-This informs our enforcement strategy: lean heavily on the two blocking hooks while using the observe-only hooks to catch anything that slips through for logging and review.
+MCP tool names use Codex's `mcp__server__tool` format, parsed by `src/tool-name-parser.ts`.
+
+## Self-Contained Bundles
+
+Each hook builds to a single minified ESM file (~125KB, esbuild, SDK bundled in) that runs with plain `node` from any directory — no `node_modules`, no dependency on this repository. The installer copies bundles into `.codex/hooks/` (project) or `~/.codex/hooks/` (global). Hooks run as fresh processes on every event, so cold-start time matters; a bundle eliminates module resolution and keeps startup fast.
+
+## Hook Trust Flow
+
+Codex requires non-managed hooks to be reviewed and trusted (via `/hooks` in the CLI) before they run, with trust recorded against the hook definition's hash. The installer prints a reminder after every install: re-running it after changes requires re-trusting. Project-level hooks additionally only load when the project's `.codex` layer is trusted.
 
 ## Tool Event Scanning
 
-MCP tool calls are scanned using the `tool_event` AIRS content type. This routes to a security profile tuned for tool-call patterns (function names, parameter values, injection attempts via tool arguments).
+MCP tool calls are scanned using the `tool_event` AIRS content type with `metadata.method: "tools/call"` plus the parsed server and tool names. This routes to a security profile tuned for tool-call patterns (function names, parameter values, injection attempts via tool arguments). `PreToolUse` sends the input; `PostToolUse` sends input and response together.
 
-`postToolUse` routes scans differently based on `tool_name`:
-- `MCP:server:tool` → `tool_event` (both input and output)
-- `Bash` → `response` (output only, for DLP/code detection)
-- `Write` / `Edit` → `prompt` (new file content for DLP)
-- Internal tools (ReadFile, ListDir, etc.) → skipped
+## AIRS Correlation
+
+AIRS `session_id` is set to the Codex `session_id`, so every scan from one Codex session groups together. AIRS `tr_id` identifies the scan unit: `turn_id:tool_use_id` for tool scans, `turn_id` for prompt and stop scans, with fallbacks when Codex omits fields.
 
 ## Configurable Content Limits
 
-Large inputs (multi-file reads, huge Bash outputs) can exceed what the AIRS API can meaningfully scan. Two thresholds are configurable in `content_limits`:
+Large inputs (multi-file MCP reads, huge responses) can exceed what the AIRS API can meaningfully scan. Two thresholds are configurable in `content_limits`:
 
 - `max_scan_bytes` (default 50KB): inputs larger than this are **skipped** entirely (fail-open)
 - `truncate_bytes` (default 20KB): inputs between `truncate_bytes` and `max_scan_bytes` are **truncated** before scanning
@@ -80,7 +78,7 @@ Each AIRS detection service (prompt injection, DLP, toxicity, malicious code, UR
 
 ## Global Config Fallback
 
-Config search checks project-level paths first, then falls back to `~/.cursor/hooks/airs-config.json`. This enables global hook installation with a single config file that works across all Cursor workspaces.
+Config search walks up from the working directory looking for `.codex/hooks/airs-config.json` (Codex may start hooks from a repo subdirectory), then falls back to `~/.codex/hooks/airs-config.json`. This enables global hook installation with a single config file that works across all Codex sessions.
 
 ## SDK Integration
 

@@ -86,7 +86,7 @@ nav:
       - Configuration: reference/configuration.md
       - Environment Variables: reference/environment-variables.md
       - CLI Commands: reference/cli-commands.md
-      - Cursor Hooks API: reference/cursor-hooks-api.md
+      - Codex Hooks API: reference/codex-hooks-api.md
   - Development:
       - Contributing: development/contributing.md
       - Testing: development/testing.md

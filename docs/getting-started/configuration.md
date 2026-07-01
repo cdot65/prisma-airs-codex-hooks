@@ -1,11 +1,10 @@
 # Configuration
 
-Runtime configuration lives at `.cursor/hooks/airs-config.json` (project-level) or `~/.cursor/hooks/airs-config.json` (global). The config loader searches in this order:
+Runtime configuration lives at `.codex/hooks/airs-config.json` (project-level) or `~/.codex/hooks/airs-config.json` (global). The config loader searches in this order:
 
-1. `CURSOR_PROJECT_DIR/.cursor/hooks/airs-config.json`
-2. `cwd/.cursor/hooks/airs-config.json`
-3. `~/.cursor/hooks/airs-config.json` (global fallback)
-4. `cwd/airs-config.json` (project root)
+1. `cwd/.codex/hooks/airs-config.json`, then each parent directory's `.codex/hooks/airs-config.json` (Codex may start hooks from a repo subdirectory)
+2. `~/.codex/hooks/airs-config.json` (global fallback)
+3. `cwd/airs-config.json` (project root)
 
 ## Full Config Example
 
@@ -19,6 +18,7 @@ Runtime configuration lives at `.cursor/hooks/airs-config.json` (project-level) 
     "tool": "${PRISMA_AIRS_TOOL_PROFILE}"
   },
   "mode": "enforce",
+  "fail_mode": "open",
   "timeout_ms": 3000,
   "retry": {
     "enabled": true,
@@ -26,7 +26,7 @@ Runtime configuration lives at `.cursor/hooks/airs-config.json` (project-level) 
     "backoff_base_ms": 200
   },
   "logging": {
-    "path": "~/.cursor/hooks/airs-scan.log",
+    "path": "~/.codex/hooks/airs-scan.log",
     "include_content": false
   },
   "enforcement": {
@@ -41,6 +41,10 @@ Runtime configuration lives at `.cursor/hooks/airs-config.json` (project-level) 
     "enabled": true,
     "failure_threshold": 5,
     "cooldown_ms": 60000
+  },
+  "content_limits": {
+    "max_scan_bytes": 51200,
+    "truncate_bytes": 20000
   }
 }
 ```
@@ -50,8 +54,20 @@ Runtime configuration lives at `.cursor/hooks/airs-config.json` (project-level) 
 | Mode | Behavior |
 |------|----------|
 | `observe` | Log scan results, never block. Start here to audit before enforcing. |
-| `enforce` | Block prompts/responses that AIRS flags, based on enforcement actions. |
+| `enforce` | Block prompts/MCP tool calls that AIRS flags; terminate the turn on flagged responses. |
 | `bypass` | Skip scanning entirely. Useful for debugging. |
+
+## Fail Mode
+
+`fail_mode` controls what happens when scanning itself fails (AIRS unreachable, config errors):
+
+| Value | Behavior |
+|-------|----------|
+| `open` (default) | Never block the developer on infrastructure or config errors. |
+| `closed` | Block prompts and MCP tool calls when the scan cannot complete. |
+
+!!! note "Stop is always fail-open"
+    The `Stop` hook scans the final response after it has already streamed. Blocking on error would be meaningless post-display, so response scanning fails open regardless of `fail_mode`.
 
 ## Enforcement Actions
 
@@ -59,7 +75,7 @@ When `mode` is `enforce`, each detection service can be configured independently
 
 | Action | Behavior |
 |--------|----------|
-| `block` | Prevent the prompt/response from passing through |
+| `block` | Prevent the prompt/tool call from passing through (or terminate the turn for responses) |
 | `mask` | Replace sensitive content and allow through (DLP) |
 | `allow` | Log the detection but allow through |
 
@@ -73,9 +89,9 @@ Config values containing `${VAR_NAME}` are resolved from environment variables a
 | Config Field | Env Var | Fallback |
 |-------------|---------|---------|
 | `endpoint` | `PRISMA_AIRS_API_ENDPOINT` | `https://service.api.aisecurity.paloaltonetworks.com` |
-| `profiles.prompt` | `PRISMA_AIRS_PROMPT_PROFILE` | `PRISMA_AIRS_PROFILE_NAME` → `Cursor IDE - Hooks` |
-| `profiles.response` | `PRISMA_AIRS_RESPONSE_PROFILE` | `PRISMA_AIRS_PROFILE_NAME` → `Cursor IDE - Hooks` |
-| `profiles.tool` | `PRISMA_AIRS_TOOL_PROFILE` | `PRISMA_AIRS_PROFILE_NAME` → `Cursor IDE - Hooks` |
+| `profiles.prompt` | `PRISMA_AIRS_PROMPT_PROFILE` | `PRISMA_AIRS_PROFILE_NAME` → `Codex CLI - Hooks` |
+| `profiles.response` | `PRISMA_AIRS_RESPONSE_PROFILE` | `PRISMA_AIRS_PROFILE_NAME` → `Codex CLI - Hooks` |
+| `profiles.tool` | `PRISMA_AIRS_TOOL_PROFILE` | `PRISMA_AIRS_PROFILE_NAME` → `Codex CLI - Hooks` |
 
 ## Logging
 
