@@ -41,7 +41,7 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node scripts/build-bundles.mjs",
     "prepack": "npm run build",
     "typecheck": "tsc --noEmit",
     "validate-connection": "tsx scripts/validate-connection.ts",
@@ -60,6 +60,7 @@
   "devDependencies": {
     "@types/node": "^25.5.0",
     "@vitest/coverage-v8": "^2.1.9",
+    "esbuild": "0.28.1",
     "typescript": "^5.5.0",
     "vitest": "^2.1.0"
   }
