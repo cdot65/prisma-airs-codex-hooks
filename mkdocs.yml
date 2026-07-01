@@ -1,8 +1,8 @@
-site_name: Prisma AIRS Cursor Hooks
-site_url: https://cdot65.github.io/prisma-airs-cursor-hooks/
-site_description: Cursor IDE hooks integrating Prisma AIRS scanning into the developer workflow
-repo_name: cdot65/prisma-airs-cursor-hooks
-repo_url: https://github.com/cdot65/prisma-airs-cursor-hooks
+site_name: Prisma AIRS Codex Hooks
+site_url: https://cdot65.github.io/prisma-airs-codex-hooks/
+site_description: Codex CLI hooks integrating Prisma AIRS scanning into the agentic workflow
+repo_name: cdot65/prisma-airs-codex-hooks
+repo_url: https://github.com/cdot65/prisma-airs-codex-hooks
 
 theme:
   name: material
