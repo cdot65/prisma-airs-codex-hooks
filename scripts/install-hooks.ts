@@ -29,7 +29,13 @@ import {
 import { join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { execSync } from "node:child_process";
-import { buildAirsHooks, mergeAirsHooks, AIRS_HOOK_SPECS } from "../src/hooks-config.js";
+import {
+  buildAirsHooks,
+  mergeAirsHooks,
+  projectHookCommand,
+  globalHookCommand,
+  AIRS_HOOK_SPECS,
+} from "../src/hooks-config.js";
 import type { CodexHooksConfig } from "../src/types.js";
 
 const PROJECT_ROOT = resolve(import.meta.dirname, "..");
@@ -93,12 +99,12 @@ function main() {
   }
 
   // ---- Build hook commands ----
-  // Project installs resolve from the git root so hooks work when Codex is
-  // started from a subdirectory; global installs use the absolute home path.
+  // Absolute node binary (Codex hook PATH lacks nvm/asdf node); project
+  // installs resolve from the git root so hooks work from subdirectories.
   const commandFor = (bundle: string) =>
     isGlobal
-      ? `node "${join(HOOKS_DIR, bundle)}"`
-      : `node "$(git rev-parse --show-toplevel)/.codex/hooks/${bundle}"`;
+      ? globalHookCommand(bundle, process.execPath, HOOKS_DIR)
+      : projectHookCommand(bundle, process.execPath);
 
   // ---- Write or merge hooks.json ----
   let existing: CodexHooksConfig | null = null;
@@ -134,6 +140,9 @@ function main() {
     console.log(`    ${spec.event}${matcher} → ${spec.bundle}`);
   }
   console.log("\n  Not scanned by design: Bash commands and apply_patch file edits.\n");
+  console.log(`  Hook commands embed this node binary: ${process.execPath}`);
+  console.log("  (Codex runs hooks with a system PATH — re-run install-hooks after");
+  console.log("  switching node versions, then re-trust via /hooks.)\n");
   console.log("  Environment variables (set in your shell profile):");
   console.log("    PRISMA_AIRS_API_KEY            — x-pan-token for AIRS API (required)");
   console.log("    PRISMA_AIRS_PROFILE_NAME       — AIRS security profile (recommended)");
