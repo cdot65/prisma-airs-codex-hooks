@@ -2,7 +2,7 @@
 
 ## Scan Logs
 
-Every scan result is written as a JSON Lines entry to the configured log path (default: `.cursor/hooks/airs-scan.log`).
+Every scan result is written as a JSON Lines entry to the configured log path (default: `~/.codex/hooks/airs-scan.log`).
 
 ### Log Entry Format
 
@@ -22,7 +22,7 @@ Every scan result is written as a JSON Lines entry to the configured log path (d
 
 | Field | Description |
 |-------|-------------|
-| `direction` | `prompt` or `response` |
+| `direction` | `prompt`, `response`, or `tool` |
 | `verdict` | AIRS verdict: `allow` or `block` |
 | `action_taken` | What the hook did: `allowed`, `blocked`, `observed`, `bypassed` |
 | `latency_ms` | AIRS API round-trip time |

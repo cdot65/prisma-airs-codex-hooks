@@ -3,8 +3,8 @@
 ## Setup
 
 ```bash
-git clone https://github.com/cdot65/prisma-airs-cursor-hooks.git
-cd prisma-airs-cursor-hooks
+git clone https://github.com/cdot65/prisma-airs-codex-hooks.git
+cd prisma-airs-codex-hooks
 npm install
 ```
 
@@ -15,27 +15,34 @@ npm install
 Edit TypeScript in `src/`. After changes:
 
 ```bash
-npm run build      # compile to dist/
+npm run build      # compile to dist/ + bundle dist/hooks/*.mjs
 npm test           # run all tests
 npm run typecheck  # type check
 ```
 
+`npm run build` runs `tsc` and then esbuild, producing self-contained minified bundles in `dist/hooks/*.mjs` — these are the artifacts the installer copies into `.codex/hooks/`.
+
 ### Development Mode Hooks
 
-For rapid iteration, point hooks.json at TypeScript source (no rebuild needed):
+For rapid iteration, point `.codex/hooks.json` at TypeScript source (no rebuild needed):
 
 ```json
 {
-  "command": "npx tsx \"/path/to/src/hooks/before-submit-prompt.ts\""
+  "type": "command",
+  "command": "npx tsx \"/path/to/src/hooks/user-prompt-submit.ts\"",
+  "timeout": 30
 }
 ```
 
-This adds ~1.5s per invocation. Switch back to compiled JS for production:
+This adds ~1.5s per invocation. Switch back to the bundles for production:
 
 ```bash
 npm run build
 npm run install-hooks -- --global
 ```
+
+!!! note "Re-trust after changes"
+    Codex records hook trust against the definition's hash. After editing `hooks.json` (including switching between dev and production commands), open Codex and run `/hooks` to re-trust the changed definitions.
 
 ### Running Tests
 
@@ -46,8 +53,8 @@ npm run test:watch    # watch mode
 
 Tests include:
 
-- **Unit tests**: config, scanner, code-extractor, circuit-breaker, DLP masking, logger, log rotation
-- **Integration tests**: end-to-end hook execution via `npx tsx` and compiled `node` with piped JSON
+- **Unit tests**: config, scanner, code-extractor, circuit-breaker, DLP masking, logger, log rotation, tool-name parser, codex adapter, hooks-config
+- **Integration tests**: end-to-end hook execution via `npx tsx`, compiled `node dist/`, and standalone bundle runs with piped JSON
 
 ### Adding a Test
 
@@ -63,9 +70,9 @@ src/config.ts      → test/config.test.ts
 ```
 src/                    TypeScript source
   hooks/                Hook entry points (stdin → scan → stdout)
-  adapters/             Multi-IDE adapter layer
-dist/                   Compiled JS (git-ignored)
-scripts/                CLI utilities (install, validate, stats)
+  adapters/             Codex stdout payload builders
+dist/                   Compiled JS + bundled .mjs hooks (git-ignored)
+scripts/                CLI utilities (install, validate, stats, bundling)
 test/                   Vitest test suites
 docs/                   MkDocs documentation
 ```
@@ -75,4 +82,4 @@ docs/                   MkDocs documentation
 - Branch from `main`
 - Ensure `npm test` and `npm run typecheck` pass
 - Include tests for new functionality
-- Run `npm run build` to verify compilation
+- Run `npm run build` to verify compilation and bundling

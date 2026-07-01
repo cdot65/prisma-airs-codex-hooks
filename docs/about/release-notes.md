@@ -1,64 +1,34 @@
 # Release Notes
 
-## 0.2.2
+## 0.1.0
 
-### Fixes
-
-- **`PRISMA_AIRS_PROFILE_NAME`** — single env var to set the AIRS security profile for all scan directions (prompt, response, tool). Per-direction vars (`PRISMA_AIRS_PROMPT_PROFILE`, `PRISMA_AIRS_RESPONSE_PROFILE`, `PRISMA_AIRS_TOOL_PROFILE`) still work as overrides.
-- **`session_id`** — all scans send `session_id` (`<email>:<YYYY-MM-DD>`) to Prisma AIRS, binding a user's prompts, responses, and tool calls into a single daily session.
-- **Log path** — `~` in `logging.path` is now resolved to the home directory at runtime. Default template changed to `~/.cursor/hooks/airs-scan.log`.
-
----
-
-## 0.2.0
-
-### Breaking Changes
-
-- **Environment variable rename**: All `AIRS_*` variables renamed to `PRISMA_AIRS_*`. See migration guide below.
-
-### New Features
-
-- **`beforeMCPExecution` hook** — scans MCP tool inputs before execution via AIRS `tool_event` content type. Can block tool calls flagged for prompt injection, malicious parameters, etc.
-- **`postToolUse` hook** — scans MCP, Shell, Write, and Edit tool outputs for DLP, malicious code, and other violations. Observe-only (audit and logging).
-- **Per-direction profiles** — new `profiles.tool` for MCP/tool scanning alongside existing `profiles.prompt` and `profiles.response`.
-- **Configurable content limits** — `content_limits.max_scan_bytes` (skip threshold, default 50KB) and `content_limits.truncate_bytes` (truncation, default 20KB) applied to all scan paths.
-
-### Migration
-
-Replace in your shell profile:
-- `AIRS_API_KEY` → `PRISMA_AIRS_API_KEY`
-- `AIRS_API_ENDPOINT` → `PRISMA_AIRS_API_ENDPOINT`
-- `AIRS_PROMPT_PROFILE` / `AIRS_RESPONSE_PROFILE` → `PRISMA_AIRS_PROFILE_NAME` (single var for all directions, or use per-direction `PRISMA_AIRS_PROMPT_PROFILE` / `PRISMA_AIRS_RESPONSE_PROFILE` / `PRISMA_AIRS_TOOL_PROFILE` overrides)
-
-Then reinstall hooks: `prisma-airs-hooks install --global`
-
----
-
-## 0.1.0 (2026-03-17)
-
-Initial release.
+Initial release of `@cdot65/prisma-airs-codex-hooks` — Codex CLI hooks integrating Prisma AIRS (AI Runtime Security) into the agentic workflow. Ported from [`prisma-airs-cursor-hooks`](https://github.com/cdot65/prisma-airs-cursor-hooks).
 
 ### Features
 
-- **Prompt scanning** via `beforeSubmitPrompt` Cursor hook
-- **Response scanning** via `afterAgentResponse` Cursor hook with code extraction
+- **Prompt scanning** via the `UserPromptSubmit` hook — blocks flagged prompts with `{"decision": "block"}`
+- **MCP tool input scanning** via `PreToolUse` (matcher `mcp__.*`) — denies flagged tool calls with `hookSpecificOutput.permissionDecision: "deny"`
+- **MCP tool output auditing** via `PostToolUse` (matcher `mcp__.*`) — observe-only by policy; violations logged and warned
+- **Final response scanning** via the `Stop` hook — post-stream; terminates the turn (`continue: false`) on an AIRS block verdict, with a `stop_hook_active` loop guard
+- **MCP-only tool coverage by design** — local `Bash` commands and `apply_patch` file edits are not scanned
+- **Configurable fail mode** — `fail_mode: "open"` (default) never blocks on errors; `"closed"` blocks prompts and tool calls when scanning fails; `Stop` is always fail-open
 - **Three modes**: observe, enforce, bypass
 - **Six detection services**: prompt injection, DLP, toxicity, malicious code, URL categorization, custom topics
 - **Per-service enforcement**: block, mask, or allow independently
-- **Fail-open design**: never blocks on infrastructure failures
+- **Response content splitting**: natural language in `response`, extracted code in `code_response` (WildFire/ATP)
+- **Tool scans as `tool_event`** with `metadata.method: "tools/call"`
+- **AIRS correlation**: `session_id` = Codex session, `tr_id` = `turn_id:tool_use_id` (tools) / `turn_id` (prompt, stop)
+- **Self-contained bundles**: esbuild-minified ~125KB `.mjs` per hook — no `node_modules` at runtime
+- **Installer for Codex**: writes/merges `.codex/hooks.json` (project, git-root-resolved commands) or `~/.codex/hooks.json` (`--global`), copies bundles and config, prints the `/hooks` trust reminder
 - **Circuit breaker**: automatic bypass after consecutive API failures
-- **DLP masking**: replace sensitive content instead of blocking
-- **Code extraction**: fenced, indented, and heuristic detection
+- **Configurable content limits**: skip at 50KB, truncate at 20KB (defaults)
 - **Structured logging**: JSON Lines with automatic rotation at 10MB
 - **Stats CLI**: scan totals, block rates, latency percentiles
-- **Global hook installation**: `--global` flag for all Cursor workspaces
-- **Precompiled JS**: ~800ms cold start vs ~2.5s with tsx
-- **Environment variable defaults**: only `AIRS_API_KEY` required
-- **66 tests** across 9 suites including compiled JS integration tests
+- **144 tests** across 14 suites, including compiled-JS and standalone-bundle integration tests
 
 ### Built On
 
 - [`@cdot65/prisma-airs-sdk`](https://github.com/cdot65/prisma-airs-sdk) for AIRS API communication
 - TypeScript 5.x with strict mode
 - Node.js 18+ (native fetch)
-- Vitest for testing
+- esbuild for bundling, Vitest for testing

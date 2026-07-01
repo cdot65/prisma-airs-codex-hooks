@@ -44,3 +44,8 @@ Scan ID: abc123-...
 
 !!! warning "Masking limitations"
     Masking depends on the detection patterns returned by AIRS. Some sensitive data may not be fully covered by the masking patterns. For maximum security, use `block` instead of `mask` for DLP findings.
+
+    Prompt content that was already sent to Codex cannot be rewritten after the fact — for the `UserPromptSubmit` hook, `mask` logs the finding and warns rather than modifying the prompt in flight.
+
+!!! info "Future enhancement"
+    Codex's `PreToolUse` hook supports rewriting tool inputs via `permissionDecision: "allow"` + `updatedInput`, which would allow masking DLP findings inside MCP tool arguments instead of denying the call. This is not implemented yet.

@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - **Node.js 18+** (native fetch, crypto.randomUUID)
-- **Cursor IDE** with hooks support
+- **Codex CLI** with hooks support (hooks are enabled by default in current versions)
 - **Prisma AIRS API key** (`x-pan-token`)
 - **AIRS security profile** configured in Strata Cloud Manager
 
@@ -12,16 +12,16 @@
 === "npm (recommended)"
 
     ```bash
-    npm install -g @cdot65/prisma-airs-cursor-hooks
+    npm install -g @cdot65/prisma-airs-codex-hooks
     ```
 
-    This installs the CLI globally and makes the `prisma-airs-hooks` command available system-wide.
+    This installs the CLI globally and makes the `prisma-airs-codex-hooks` command available system-wide.
 
 === "From source"
 
     ```bash
-    git clone https://github.com/cdot65/prisma-airs-cursor-hooks.git
-    cd prisma-airs-cursor-hooks
+    git clone https://github.com/cdot65/prisma-airs-codex-hooks.git
+    cd prisma-airs-codex-hooks
     npm install
     npm run build
     ```
@@ -32,7 +32,7 @@ Add to your shell profile (`~/.zshrc`, `~/.bashrc`, or `~/.zsh.d/`):
 
 ```bash
 export PRISMA_AIRS_API_KEY=<your-x-pan-token>                         # required
-export PRISMA_AIRS_PROFILE_NAME="Cursor IDE - Hooks"                   # recommended
+export PRISMA_AIRS_PROFILE_NAME="Codex CLI - Hooks"                    # recommended
 export PRISMA_AIRS_API_ENDPOINT=https://service.api.aisecurity.paloaltonetworks.com  # optional
 ```
 
@@ -53,8 +53,8 @@ export PRISMA_AIRS_API_ENDPOINT=https://service.api.aisecurity.paloaltonetworks.
 === "npm global install"
 
     ```bash
-    prisma-airs-hooks validate-connection
-    prisma-airs-hooks validate-detection
+    prisma-airs-codex-hooks validate-connection
+    prisma-airs-codex-hooks validate-detection
     ```
 
 === "From source"
@@ -64,12 +64,12 @@ export PRISMA_AIRS_API_ENDPOINT=https://service.api.aisecurity.paloaltonetworks.
     npm run validate-detection
     ```
 
-## Register Hooks in Cursor
+## Register Hooks in Codex
 
 === "npm global install"
 
     ```bash
-    prisma-airs-hooks install --global
+    prisma-airs-codex-hooks install --global
     ```
 
 === "From source"
@@ -78,27 +78,45 @@ export PRISMA_AIRS_API_ENDPOINT=https://service.api.aisecurity.paloaltonetworks.
     npm run install-hooks -- --global
     ```
 
-This writes `hooks.json` pointing at the precompiled JS in `dist/` and copies `airs-config.json` to the hooks config directory.
+This copies the self-contained hook bundles (`*.mjs`) and `airs-config.json` into `~/.codex/hooks/`, then writes the hook registrations to `~/.codex/hooks.json`. The bundles run with plain `node` — no repository or `node_modules` dependency.
+
+Without `--global`, the installer targets the current repository instead: bundles go to `<git-root>/.codex/hooks/` and registrations to `<git-root>/.codex/hooks.json`, with commands resolved via `$(git rev-parse --show-toplevel)` so hooks work when Codex starts from a subdirectory.
 
 !!! tip "Global installation recommended"
-    Use `--global` to install hooks at `~/.cursor/hooks.json` so they apply across all workspaces without per-project setup.
+    Use `--global` to install hooks at `~/.codex/hooks.json` so they apply across all sessions without per-project setup. Project-level hooks only load when the project's `.codex` layer is trusted.
 
-## Restart Cursor
+## Trust the Hooks in Codex
 
-Cursor reads `hooks.json` at startup. **Restart Cursor** to activate the hooks.
+Codex requires you to review and trust non-managed hooks before they run:
+
+1. Open Codex and run `/hooks`.
+2. Review the Prisma AIRS hook definitions and trust them.
+
+!!! warning "Trust is hash-based"
+    Codex records trust against each hook definition's hash. Re-running the installer after any change to the hook commands marks them for review again — re-trust via `/hooks`.
+
+!!! info "Older Codex versions"
+    Hooks are enabled by default in current Codex. Older versions need this in `~/.codex/config.toml`:
+
+    ```toml
+    [features]
+    hooks = true
+    ```
+
+    (`codex_hooks` still works as a deprecated alias.)
 
 ## Verify
 
 === "npm global install"
 
     ```bash
-    prisma-airs-hooks verify
+    prisma-airs-codex-hooks verify --global
     ```
 
 === "From source"
 
     ```bash
-    npm run verify-hooks
+    npm run verify-hooks -- --global
     ```
 
 ## Uninstall
@@ -106,7 +124,7 @@ Cursor reads `hooks.json` at startup. **Restart Cursor** to activate the hooks.
 === "npm global install"
 
     ```bash
-    prisma-airs-hooks uninstall --global
+    prisma-airs-codex-hooks uninstall --global
     ```
 
 === "From source"
@@ -115,4 +133,4 @@ Cursor reads `hooks.json` at startup. **Restart Cursor** to activate the hooks.
     npm run uninstall-hooks -- --global
     ```
 
-Removes AIRS entries from `hooks.json` while preserving other hooks, config, and logs.
+Removes AIRS entries from `hooks.json` while preserving other hooks. Hook bundles, config, and logs under `.codex/hooks/` are left in place.

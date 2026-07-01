@@ -34,7 +34,7 @@ Detects malicious code patterns in AI-generated responses using WildFire and Adv
 **Applies to:** Responses (via `code_response` field)
 
 !!! info "Requires code extraction"
-    Malicious code detection only triggers when code blocks are extracted from the AI response and sent in the `code_response` field. The code extractor handles this automatically.
+    Malicious code detection only triggers when code blocks are extracted from the final response and sent in the `code_response` field. The code extractor handles this automatically in the `Stop` hook.
 
 ### URL Categorization
 
@@ -75,13 +75,13 @@ When multiple services trigger on the same content, the strictest action wins.
 
 ## Block Messages
 
-When a prompt or response is blocked, the developer sees a formatted message:
+When a prompt or tool call is blocked, the developer sees a formatted message:
 
 ```
 AIRS -- Prompt Blocked
 
 What happened: Your prompt was flagged by the Toxic Content security
-check. Category: malicious Profile: Cursor IDE - Hooks
+check. Category: malicious Profile: Codex CLI - Hooks
 
 What to do:
 - Review your prompt for sensitive data, injection patterns, or policy violations.
