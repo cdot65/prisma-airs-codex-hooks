@@ -33,7 +33,7 @@ describe("preToolUseDeny", () => {
   it("never emits fields Codex rejects for PreToolUse", () => {
     // Codex marks the hook run FAILED (and allows the tool call) if a
     // PreToolUse hook returns continue/stopReason/suppressOutput.
-    const payload = preToolUseDeny("reason") as Record<string, unknown>;
+    const payload = preToolUseDeny("reason") as unknown as Record<string, unknown>;
     expect(payload).not.toHaveProperty("continue");
     expect(payload).not.toHaveProperty("stopReason");
     expect(payload).not.toHaveProperty("suppressOutput");
