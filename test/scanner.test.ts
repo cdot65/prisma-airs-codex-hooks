@@ -148,6 +148,7 @@ describe("scanResponse", () => {
       expect.stringContaining("print('hello')"),
       expect.any(String),
       expect.any(Logger),
+      undefined,
     );
   });
 
@@ -165,6 +166,7 @@ describe("scanResponse", () => {
       undefined,
       expect.any(String),
       expect.any(Logger),
+      undefined,
     );
   });
 

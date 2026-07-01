@@ -7,6 +7,7 @@
     "tool": "${PRISMA_AIRS_TOOL_PROFILE}"
   },
   "mode": "enforce",
+  "fail_mode": "open",
   "timeout_ms": 3000,
   "retry": {
     "enabled": true,
@@ -14,7 +15,7 @@
     "backoff_base_ms": 200
   },
   "logging": {
-    "path": "~/.cursor/hooks/airs-scan.log",
+    "path": "~/.codex/hooks/airs-scan.log",
     "include_content": false
   },
   "enforcement": {

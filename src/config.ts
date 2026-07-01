@@ -1,12 +1,13 @@
 import { readFileSync, existsSync } from "node:fs";
-import { resolve, join } from "node:path";
+import { resolve, join, dirname } from "node:path";
 import { homedir } from "node:os";
-import type { AirsConfig, Mode } from "./types.js";
+import type { AirsConfig, FailMode, Mode } from "./types.js";
 import { DEFAULT_CONTENT_LIMITS } from "./content-limits.js";
 
 const VALID_MODES: Mode[] = ["observe", "enforce", "bypass"];
+const VALID_FAIL_MODES: FailMode[] = ["open", "closed"];
 const DEFAULT_ENDPOINT = "https://service.api.aisecurity.paloaltonetworks.com";
-const DEFAULT_PROFILE = "Cursor IDE - Hooks";
+const DEFAULT_PROFILE = "Codex CLI - Hooks";
 
 /** Resolve environment variable references like ${VAR_NAME} */
 function resolveEnvVars(value: string): string {
@@ -26,24 +27,26 @@ function isValidUrl(url: string): boolean {
 /**
  * Resolve the config file path by searching (in order):
  *   1. Explicit path argument
- *   2. .cursor/hooks/airs-config.json in CURSOR_PROJECT_DIR (project-level)
- *   3. .cursor/hooks/airs-config.json in cwd
- *   4. ~/.cursor/hooks/airs-config.json (global/user-level)
- *   5. airs-config.json in cwd (project root fallback)
+ *   2. .codex/hooks/airs-config.json in cwd, then each parent directory
+ *      (Codex may start hooks from a repo subdirectory)
+ *   3. ~/.codex/hooks/airs-config.json (global/user-level)
+ *   4. airs-config.json in cwd (project root fallback)
  */
 function resolveConfigPath(configPath?: string): string {
   if (configPath) return configPath;
 
   const candidates: string[] = [];
 
-  const cursorDir = process.env.CURSOR_PROJECT_DIR;
-  if (cursorDir) {
-    candidates.push(join(cursorDir, ".cursor", "hooks", "airs-config.json"));
+  let dir = process.cwd();
+  for (;;) {
+    candidates.push(join(dir, ".codex", "hooks", "airs-config.json"));
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
   }
 
   candidates.push(
-    join(process.cwd(), ".cursor", "hooks", "airs-config.json"),
-    join(homedir(), ".cursor", "hooks", "airs-config.json"),
+    join(homedir(), ".codex", "hooks", "airs-config.json"),
     resolve(process.cwd(), "airs-config.json"),
   );
 
@@ -94,6 +97,15 @@ export function loadConfig(configPath?: string): AirsConfig {
     );
   }
 
+  // Validate fail_mode (default: open)
+  if (config.fail_mode === undefined) {
+    config.fail_mode = "open";
+  } else if (!VALID_FAIL_MODES.includes(config.fail_mode)) {
+    throw new Error(
+      `Invalid fail_mode "${config.fail_mode}". Must be one of: ${VALID_FAIL_MODES.join(", ")}`,
+    );
+  }
+
   // Validate endpoint URL
   if (!isValidUrl(config.endpoint)) {
     throw new Error(`Invalid endpoint URL: "${config.endpoint}"`);
@@ -134,4 +146,19 @@ export function loadConfig(configPath?: string): AirsConfig {
 /** Get the API key value from the environment */
 export function getApiKey(config: AirsConfig): string {
   return process.env[config.apiKeyEnvVar] ?? "";
+}
+
+/**
+ * Best-effort read of fail_mode from the config file, without full validation.
+ * Used by hooks in error paths where loadConfig itself threw — a fail-closed
+ * operator intent must survive config errors. Never throws; defaults to "open".
+ */
+export function readFailMode(configPath?: string): FailMode {
+  try {
+    const resolved = resolveConfigPath(configPath);
+    const parsed = JSON.parse(readFileSync(resolved, "utf-8"));
+    return parsed.fail_mode === "closed" ? "closed" : "open";
+  } catch {
+    return "open";
+  }
 }
