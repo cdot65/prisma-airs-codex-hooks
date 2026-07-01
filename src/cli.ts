@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 /**
- * CLI entry point for prisma-airs-cursor-hooks.
+ * CLI entry point for prisma-airs-codex-hooks.
  *
  * Usage:
- *   prisma-airs-hooks install [--global]
- *   prisma-airs-hooks uninstall [--global]
- *   prisma-airs-hooks verify
- *   prisma-airs-hooks validate-connection
- *   prisma-airs-hooks validate-detection
- *   prisma-airs-hooks stats [--since <duration>] [--json]
+ *   prisma-airs-codex-hooks install [--global]
+ *   prisma-airs-codex-hooks uninstall [--global]
+ *   prisma-airs-codex-hooks verify [--global]
+ *   prisma-airs-codex-hooks validate-connection
+ *   prisma-airs-codex-hooks validate-detection
+ *   prisma-airs-codex-hooks stats [--since <duration>] [--json]
  */
 
 import { execSync } from "node:child_process";
@@ -30,15 +30,15 @@ const COMMANDS: Record<string, string> = {
 
 function usage(): void {
   console.log(`
-Prisma AIRS Cursor Hooks
+Prisma AIRS Codex Hooks
 
 Usage:
-  prisma-airs-hooks install [--global]      Install hooks into Cursor
-  prisma-airs-hooks uninstall [--global]    Remove hooks from Cursor
-  prisma-airs-hooks verify                  Check hooks registration and env vars
-  prisma-airs-hooks validate-connection     Test AIRS API connectivity
-  prisma-airs-hooks validate-detection      Verify detection is working
-  prisma-airs-hooks stats [--since] [--json] Show scan statistics
+  prisma-airs-codex-hooks install [--global]      Install hooks into Codex
+  prisma-airs-codex-hooks uninstall [--global]    Remove hooks from Codex
+  prisma-airs-codex-hooks verify [--global]       Check hooks registration and env vars
+  prisma-airs-codex-hooks validate-connection     Test AIRS API connectivity
+  prisma-airs-codex-hooks validate-detection      Verify detection is working
+  prisma-airs-codex-hooks stats [--since] [--json] Show scan statistics
 `.trim());
 }
 

@@ -204,23 +204,3 @@ export interface CodexHooksConfig {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Legacy Cursor hooks.json types — used only by the install scripts until
-// the Codex installer lands in issue #5. Do not use in new code.
-// ---------------------------------------------------------------------------
-
-/** Cursor hooks.json file format */
-export interface CursorHooksConfig {
-  version: 1;
-  hooks: {
-    [eventName: string]: CursorHookEntry[];
-  };
-}
-
-/** Single hook entry inside hooks.json */
-export interface CursorHookEntry {
-  command: string;
-  timeout?: number;
-  /** true = block the action if the hook fails; false = fail-open (default) */
-  failClosed?: boolean;
-}

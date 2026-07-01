@@ -1,70 +1,57 @@
 #!/usr/bin/env tsx
 /**
- * Tamper detection: verify Cursor hooks.json contains AIRS hook entries
- * and that the AIRS config file is present.
+ * Tamper detection: verify Codex hooks.json contains the AIRS hook entries,
+ * the hook bundles are installed, and the AIRS config file is present.
  *
- * Run: npx tsx scripts/verify-hooks.ts
+ * Usage:
+ *   npx tsx scripts/verify-hooks.ts             # project-level
+ *   npx tsx scripts/verify-hooks.ts --global     # user-level (~/.codex)
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { homedir } from "node:os";
+import { execSync } from "node:child_process";
+import { AIRS_HOOK_SPECS } from "../src/hooks-config.js";
+import type { CodexHooksConfig } from "../src/types.js";
 
-const CURSOR_DIR = join(process.cwd(), ".cursor");
-const HOOKS_JSON = join(CURSOR_DIR, "hooks.json");
-const AIRS_CONFIG = join(CURSOR_DIR, "hooks", "airs-config.json");
+const isGlobal = process.argv.includes("--global");
+
+function gitToplevel(): string | null {
+  try {
+    return execSync("git rev-parse --show-toplevel", { encoding: "utf-8" }).trim();
+  } catch {
+    return null;
+  }
+}
+
+const TARGET_ROOT = isGlobal ? homedir() : (gitToplevel() ?? process.cwd());
+const CODEX_DIR = join(TARGET_ROOT, ".codex");
+const HOOKS_JSON = join(CODEX_DIR, "hooks.json");
+const HOOKS_DIR = join(CODEX_DIR, "hooks");
+const AIRS_CONFIG = join(HOOKS_DIR, "airs-config.json");
 
 function main() {
-  console.log("Verifying Prisma AIRS hook integrity...\n");
+  console.log(`Verifying Prisma AIRS hook integrity [${isGlobal ? "global" : "project"}]...\n`);
   let issues = 0;
 
-  // Check hooks.json exists
   if (!existsSync(HOOKS_JSON)) {
-    console.log("  ❌ MISSING: .cursor/hooks.json");
+    console.log(`  ❌ MISSING: ${HOOKS_JSON}`);
     issues++;
   } else {
-    console.log("  ✅ Found:   .cursor/hooks.json");
+    console.log(`  ✅ Found:   ${HOOKS_JSON}`);
 
-    // Verify AIRS entries are present
     try {
-      const config = JSON.parse(readFileSync(HOOKS_JSON, "utf-8"));
-      const hasPromptHook = config.hooks?.beforeSubmitPrompt?.some(
-        (h: { command: string }) => h.command.includes("before-submit-prompt"),
-      );
-      const hasResponseHook = config.hooks?.afterAgentResponse?.some(
-        (h: { command: string }) => h.command.includes("after-agent-response"),
-      );
-      const hasMCPHook = config.hooks?.beforeMCPExecution?.some(
-        (h: { command: string }) => h.command.includes("before-mcp-execution"),
-      );
-      const hasPostToolHook = config.hooks?.postToolUse?.some(
-        (h: { command: string }) => h.command.includes("post-tool-use"),
-      );
-
-      if (hasPromptHook) {
-        console.log("  ✅ Registered: beforeSubmitPrompt → AIRS prompt scan");
-      } else {
-        console.log("  ❌ MISSING:    beforeSubmitPrompt hook entry");
-        issues++;
-      }
-
-      if (hasResponseHook) {
-        console.log("  ✅ Registered: afterAgentResponse → AIRS response scan");
-      } else {
-        console.log("  ❌ MISSING:    afterAgentResponse hook entry");
-        issues++;
-      }
-
-      if (hasMCPHook) {
-        console.log("  ✅ Registered: beforeMCPExecution → AIRS MCP tool scan");
-      } else {
-        console.log("  ❌ MISSING:    beforeMCPExecution hook entry");
-        issues++;
-      }
-
-      if (hasPostToolHook) {
-        console.log("  ✅ Registered: postToolUse → AIRS tool output audit");
-      } else {
-        console.log("  ❌ MISSING:    postToolUse hook entry");
-        issues++;
+      const config: CodexHooksConfig = JSON.parse(readFileSync(HOOKS_JSON, "utf-8"));
+      for (const spec of AIRS_HOOK_SPECS) {
+        const registered = config.hooks?.[spec.event]?.some((group) =>
+          group.hooks?.some((h) => h.command?.includes(spec.bundle)),
+        );
+        if (registered) {
+          console.log(`  ✅ Registered: ${spec.event} → ${spec.bundle}`);
+        } else {
+          console.log(`  ❌ MISSING:    ${spec.event} hook entry (${spec.bundle})`);
+          issues++;
+        }
       }
     } catch {
       console.log("  ❌ ERROR:   hooks.json is invalid JSON");
@@ -72,11 +59,22 @@ function main() {
     }
   }
 
+  // Check installed bundles
+  for (const spec of AIRS_HOOK_SPECS) {
+    const bundlePath = join(HOOKS_DIR, spec.bundle);
+    if (existsSync(bundlePath)) {
+      console.log(`  ✅ Bundle:  ${spec.bundle}`);
+    } else {
+      console.log(`  ❌ MISSING: ${bundlePath}`);
+      issues++;
+    }
+  }
+
   // Check AIRS config
   if (existsSync(AIRS_CONFIG)) {
-    console.log("  ✅ Found:   .cursor/hooks/airs-config.json");
+    console.log(`  ✅ Found:   ${AIRS_CONFIG}`);
   } else {
-    console.log("  ❌ MISSING: .cursor/hooks/airs-config.json");
+    console.log(`  ❌ MISSING: ${AIRS_CONFIG}`);
     issues++;
   }
 
@@ -84,17 +82,18 @@ function main() {
   if (process.env.PRISMA_AIRS_API_KEY) {
     console.log("  ✅ Set:     PRISMA_AIRS_API_KEY");
   } else {
-    console.log("  ⚠️  NOT SET: PRISMA_AIRS_API_KEY (hooks will fail-open)");
+    console.log("  ⚠️  NOT SET: PRISMA_AIRS_API_KEY (hooks fail per fail_mode)");
   }
-  if (process.env.PRISMA_AIRS_API_ENDPOINT) {
-    console.log("  ✅ Set:     PRISMA_AIRS_API_ENDPOINT");
+  if (process.env.PRISMA_AIRS_PROFILE_NAME) {
+    console.log("  ✅ Set:     PRISMA_AIRS_PROFILE_NAME");
   } else {
-    console.log("  ⚠️  NOT SET: PRISMA_AIRS_API_ENDPOINT");
+    console.log("  ⚠️  NOT SET: PRISMA_AIRS_PROFILE_NAME");
   }
 
   console.log("");
   if (issues === 0) {
     console.log("✅ All hooks intact and correctly configured.");
+    console.log("   Reminder: hooks must also be trusted in Codex — run /hooks to check.");
   } else {
     console.log(`⚠️  ${issues} issue(s) found. Run 'npm run install-hooks' to restore.`);
     process.exit(1);
