@@ -50,8 +50,8 @@
     "uninstall-hooks": "tsx scripts/uninstall-hooks.ts",
     "verify-hooks": "tsx scripts/verify-hooks.ts",
     "stats": "tsx scripts/airs-stats.ts",
-    "docs:serve": "mkdocs serve",
-    "docs:build": "mkdocs build"
+    "docs:serve": "npm --prefix docs-site run start",
+    "docs:build": "npm --prefix docs-site run build"
   },
   "dependencies": {
     "@cdot65/prisma-airs-sdk": "^0.6.7",
