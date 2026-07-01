@@ -263,3 +263,82 @@ describe("scanToolEvent", () => {
     expect(result.action).toBe("pass");
   });
 });
+
+describe("fail_mode and correlation", () => {
+  let logger: Logger;
+
+  beforeEach(() => {
+    process.env.PRISMA_AIRS_API_KEY = "test-key";
+    logger = new Logger("/dev/null");
+    vi.mocked(scanPromptContent).mockReset();
+    vi.mocked(scanResponseContent).mockReset();
+    vi.mocked(scanToolEventContent).mockReset();
+  });
+
+  afterEach(() => {
+    delete process.env.PRISMA_AIRS_API_KEY;
+  });
+
+  it("scanPrompt blocks on SDK error when fail_mode is closed", async () => {
+    vi.mocked(scanPromptContent).mockRejectedValue(new Error("network down"));
+    const config = { ...mockConfig, mode: "enforce" as const, fail_mode: "closed" as const };
+    const result = await scanPrompt(config, "test prompt", logger);
+    expect(result.action).toBe("block");
+    expect(result.errored).toBe(true);
+  });
+
+  it("scanPrompt fails open on SDK error by default", async () => {
+    vi.mocked(scanPromptContent).mockRejectedValue(new Error("network down"));
+    const config = { ...mockConfig, mode: "enforce" as const };
+    const result = await scanPrompt(config, "test prompt", logger);
+    expect(result.action).toBe("pass");
+    expect(result.errored).toBe(true);
+  });
+
+  it("scanToolEvent blocks on SDK error when fail_mode is closed", async () => {
+    vi.mocked(scanToolEventContent).mockRejectedValue(new Error("network down"));
+    const config = { ...mockConfig, mode: "enforce" as const, fail_mode: "closed" as const };
+    const result = await scanToolEvent(config, "mcp__s__t", "input", undefined, logger);
+    expect(result.action).toBe("block");
+    expect(result.errored).toBe(true);
+  });
+
+  it("scanResponse always fails open even when fail_mode is closed", async () => {
+    // Stop is post-stream: the response was already displayed, blocking is meaningless.
+    vi.mocked(scanResponseContent).mockRejectedValue(new Error("network down"));
+    const config = { ...mockConfig, mode: "enforce" as const, fail_mode: "closed" as const };
+    const result = await scanResponse(config, "some response", logger);
+    expect(result.action).toBe("pass");
+    expect(result.errored).toBe(true);
+  });
+
+  it("scanPrompt forwards correlation IDs to the AIRS client", async () => {
+    vi.mocked(scanPromptContent).mockResolvedValue({ result: allowScanResult as any, latencyMs: 10 });
+    await scanPrompt(mockConfig, "test", logger, { sessionId: "sess-1", transactionId: "turn-1" });
+    expect(scanPromptContent).toHaveBeenCalledWith(
+      mockConfig, "test", expect.any(String), logger,
+      { sessionId: "sess-1", transactionId: "turn-1" },
+    );
+  });
+
+  it("scanResponse forwards correlation IDs to the AIRS client", async () => {
+    vi.mocked(scanResponseContent).mockResolvedValue({ result: allowScanResult as any, latencyMs: 10 });
+    await scanResponse(mockConfig, "resp", logger, { sessionId: "sess-2", transactionId: "turn-2" });
+    expect(scanResponseContent).toHaveBeenCalledWith(
+      mockConfig, "resp", undefined, expect.any(String), logger,
+      { sessionId: "sess-2", transactionId: "turn-2" },
+    );
+  });
+
+  it("scanToolEvent forwards correlation IDs to the AIRS client", async () => {
+    vi.mocked(scanToolEventContent).mockResolvedValue({ result: allowScanResult as any, latencyMs: 10 });
+    await scanToolEvent(mockConfig, "mcp__gh__get", "in", undefined, logger, {
+      sessionId: "sess-3",
+      transactionId: "turn-3:tool-1",
+    });
+    expect(scanToolEventContent).toHaveBeenCalledWith(
+      mockConfig, "gh", "get", "in", undefined, expect.any(String), logger,
+      { sessionId: "sess-3", transactionId: "turn-3:tool-1" },
+    );
+  });
+});

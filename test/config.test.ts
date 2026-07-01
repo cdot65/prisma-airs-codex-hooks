@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { writeFileSync, mkdirSync, rmSync } from "node:fs";
+import { writeFileSync, mkdirSync, rmSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { loadConfig } from "../src/config.js";
+import { loadConfig, readFailMode } from "../src/config.js";
 
 const TMP_DIR = join(import.meta.dirname, ".tmp-config-test");
 
@@ -93,9 +93,9 @@ describe("config", () => {
       },
     });
     const config = loadConfig(path);
-    expect(config.profiles.prompt).toBe("Cursor IDE - Hooks");
-    expect(config.profiles.response).toBe("Cursor IDE - Hooks");
-    expect(config.profiles.tool).toBe("Cursor IDE - Hooks");
+    expect(config.profiles.prompt).toBe("Codex CLI - Hooks");
+    expect(config.profiles.response).toBe("Codex CLI - Hooks");
+    expect(config.profiles.tool).toBe("Codex CLI - Hooks");
   });
 
   it("resolves profile env vars when set", () => {
@@ -172,5 +172,87 @@ describe("config", () => {
     const config = loadConfig(path);
     expect(config.content_limits!.max_scan_bytes).toBe(100000);
     expect(config.content_limits!.truncate_bytes).toBe(20000);
+  });
+
+  it("defaults fail_mode to open when not specified", () => {
+    const path = writeConfig();
+    const config = loadConfig(path);
+    expect(config.fail_mode).toBe("open");
+  });
+
+  it("accepts fail_mode closed", () => {
+    const path = writeConfig({ fail_mode: "closed" });
+    const config = loadConfig(path);
+    expect(config.fail_mode).toBe("closed");
+  });
+
+  it("rejects invalid fail_mode", () => {
+    const path = writeConfig({ fail_mode: "sometimes" });
+    expect(() => loadConfig(path)).toThrow('Invalid fail_mode "sometimes"');
+  });
+
+  it("resolves config from .codex/hooks in cwd", () => {
+    const codexDir = join(TMP_DIR, ".codex", "hooks");
+    mkdirSync(codexDir, { recursive: true });
+    const base = JSON.parse(readFileSync(writeConfig(), "utf-8"));
+    writeFileSync(join(codexDir, "airs-config.json"), JSON.stringify({ ...base, mode: "bypass" }));
+
+    const prevCwd = process.cwd();
+    try {
+      process.chdir(TMP_DIR);
+      const config = loadConfig();
+      expect(config.mode).toBe("bypass");
+    } finally {
+      process.chdir(prevCwd);
+    }
+  });
+
+  it("walks up parent directories to find .codex/hooks config", () => {
+    const codexDir = join(TMP_DIR, ".codex", "hooks");
+    const nested = join(TMP_DIR, "sub", "dir");
+    mkdirSync(codexDir, { recursive: true });
+    mkdirSync(nested, { recursive: true });
+    const base = JSON.parse(readFileSync(writeConfig(), "utf-8"));
+    writeFileSync(join(codexDir, "airs-config.json"), JSON.stringify({ ...base, mode: "bypass" }));
+    rmSync(join(TMP_DIR, "airs-config.json"));
+
+    const prevCwd = process.cwd();
+    try {
+      process.chdir(nested);
+      const config = loadConfig();
+      expect(config.mode).toBe("bypass");
+    } finally {
+      process.chdir(prevCwd);
+    }
+  });
+});
+
+describe("readFailMode", () => {
+  beforeEach(() => {
+    mkdirSync(TMP_DIR, { recursive: true });
+    process.env.PRISMA_AIRS_API_KEY = "test-key-123";
+  });
+
+  afterEach(() => {
+    rmSync(TMP_DIR, { recursive: true, force: true });
+    delete process.env.PRISMA_AIRS_API_KEY;
+  });
+
+  it("reads fail_mode closed without full validation", () => {
+    // Even with a config that loadConfig would reject (missing API key env),
+    // readFailMode must still surface the operator's fail-closed intent.
+    delete process.env.PRISMA_AIRS_API_KEY;
+    const path = writeConfig({ fail_mode: "closed" });
+    expect(readFailMode(path)).toBe("closed");
+  });
+
+  it("defaults to open when config is missing", () => {
+    expect(readFailMode("/nonexistent/airs-config.json")).toBe("open");
+  });
+
+  it("defaults to open when config is malformed", () => {
+    const path = join(TMP_DIR, "airs-config.json");
+    writeFileSync(path, "not json");
+    expect(readFailMode(path)).toBe("open");
   });
 });
