@@ -1,75 +1,39 @@
 #!/usr/bin/env node
 /**
- * Cursor hook: postToolUse (observe-only)
+ * Codex hook: PostToolUse — MCP tools only, observe-only by policy
  *
- * Fires after any tool executes. Scans tool outputs for security violations.
- * Cannot block — observe-only. Logs violations for audit and emits warnings.
+ * Fires after an MCP tool produced output. Scans the tool input + response
+ * via Prisma AIRS for audit; violations are logged and warned on stderr but
+ * never block (Codex CAN block PostToolUse — this project chooses observe).
  *
- * Routing:
- *   MCP:*  → scan input + output as tool_event
- *   Bash   → scan output as response
- *   Write  → scan content for DLP via prompt
- *   Edit   → scan new_string for DLP via prompt
- *   Others → skip (Grep, Read, Glob, Delete, Task, NotebookEdit)
- *
- * Cursor contract:
- *   stdin  → JSON { tool_name, tool_input, tool_output, tool_use_id, ... }
- *   stdout → JSON {} (always allow)
- *   exit 0 always
- *   stderr → debug logs
+ * Codex contract:
+ *   stdin  → JSON { tool_name, tool_use_id, tool_input, tool_response, ... }
+ *   stdout → nothing (observe-only)
+ *   stderr → diagnostics
  */
 import { loadConfig } from "../config.js";
 import { Logger } from "../logger.js";
-import { scanToolEvent, scanResponse, scanPrompt } from "../scanner.js";
+import { scanToolEvent } from "../scanner.js";
 import { applyContentLimits, DEFAULT_CONTENT_LIMITS } from "../content-limits.js";
-import type { PostToolUseInput } from "../types.js";
-
-const SKIP_TOOLS = new Set(["Grep", "Read", "Glob", "Delete", "Task", "NotebookEdit"]);
-
-async function readStdin(): Promise<string> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of process.stdin) {
-    chunks.push(Buffer.from(chunk));
-  }
-  return Buffer.concat(chunks).toString("utf-8");
-}
-
-function respond(): void {
-  process.stdout.write("{}\n");
-}
-
-/** Normalize unknown value to a string */
-function normalize(raw: unknown): string {
-  if (typeof raw === "string") return raw;
-  if (raw === null || raw === undefined) return "";
-  try {
-    return JSON.stringify(raw);
-  } catch {
-    return String(raw);
-  }
-}
+import { isMcpToolName } from "../tool-name-parser.js";
+import { readStdin, normalize, buildCorrelation } from "./shared.js";
+import type { CodexPostToolUseInput } from "../types.js";
 
 async function main(): Promise<void> {
   const raw = await readStdin();
 
-  let input: PostToolUseInput;
+  let input: CodexPostToolUseInput;
   try {
     input = JSON.parse(raw);
   } catch {
     console.error("[AIRS] Failed to parse hook stdin as JSON.");
-    respond();
     return;
   }
 
-  if (input.user_email) {
-    process.env.CURSOR_USER_EMAIL = input.user_email;
-  }
+  const toolName = input.tool_name ?? "";
 
-  const toolName = input.tool_name ?? "unknown";
-
-  // Skip Cursor built-in tools that operate on local files
-  if (SKIP_TOOLS.has(toolName)) {
-    respond();
+  // MCP-only by design: Bash and apply_patch outputs are not scanned
+  if (!isMcpToolName(toolName)) {
     return;
   }
 
@@ -78,77 +42,40 @@ async function main(): Promise<void> {
     config = loadConfig();
   } catch (err) {
     console.error(`[AIRS] Config error: ${err}`);
-    respond();
     return;
   }
 
   const logger = new Logger(config.logging.path, config.logging.include_content);
   const limits = config.content_limits ?? DEFAULT_CONTENT_LIMITS;
 
-  let result;
-
-  if (toolName === "Write") {
-    // Scan file content for DLP
-    const content = normalize((input.tool_input as Record<string, unknown>)?.content);
-    if (!content.trim()) { respond(); return; }
-    const limited = applyContentLimits(content, limits);
-    if (limited.skipped) {
-      logger.logEvent("scan_skipped_size_limit", { direction: "tool", tool: toolName });
-      respond();
-      return;
-    }
-    result = await scanPrompt(config, limited.content, logger);
-  } else if (toolName === "Edit") {
-    // Scan new_string for DLP
-    const newString = normalize((input.tool_input as Record<string, unknown>)?.new_string);
-    if (!newString.trim()) { respond(); return; }
-    const limited = applyContentLimits(newString, limits);
-    if (limited.skipped) {
-      logger.logEvent("scan_skipped_size_limit", { direction: "tool", tool: toolName });
-      respond();
-      return;
-    }
-    result = await scanPrompt(config, limited.content, logger);
-  } else if (toolName.startsWith("MCP:")) {
-    // Scan as tool_event (structured input + output)
-    const toolInput = normalize(input.tool_input);
-    const toolOutput = normalize(input.tool_output);
-    if (!toolInput.trim() && !toolOutput.trim()) { respond(); return; }
-    const limitedInput = applyContentLimits(toolInput, limits);
-    const limitedOutput = applyContentLimits(toolOutput, limits);
-    if (limitedInput.skipped && limitedOutput.skipped) {
-      logger.logEvent("scan_skipped_size_limit", { direction: "tool", tool: toolName });
-      respond();
-      return;
-    }
-    result = await scanToolEvent(
-      config, toolName,
-      limitedInput.skipped ? undefined : limitedInput.content,
-      limitedOutput.skipped ? undefined : limitedOutput.content,
-      logger,
-    );
-  } else {
-    // Shell / Bash — scan output as response
-    const toolOutput = normalize(input.tool_output);
-    if (!toolOutput.trim()) { respond(); return; }
-    const limited = applyContentLimits(toolOutput, limits);
-    if (limited.skipped) {
-      logger.logEvent("scan_skipped_size_limit", { direction: "tool", tool: toolName });
-      respond();
-      return;
-    }
-    result = await scanResponse(config, limited.content, logger);
+  const toolInput = normalize(input.tool_input);
+  const toolResponse = normalize(input.tool_response);
+  if (!toolInput.trim() && !toolResponse.trim()) {
+    return;
   }
 
-  // postToolUse is observe-only — log violations, emit warning, never block
+  const limitedInput = applyContentLimits(toolInput, limits);
+  const limitedResponse = applyContentLimits(toolResponse, limits);
+  if (limitedInput.skipped && limitedResponse.skipped) {
+    logger.logEvent("scan_skipped_size_limit", { direction: "tool", tool: toolName });
+    return;
+  }
+
+  const result = await scanToolEvent(
+    config,
+    toolName,
+    limitedInput.skipped ? undefined : limitedInput.content,
+    limitedResponse.skipped ? undefined : limitedResponse.content,
+    logger,
+    buildCorrelation(input),
+  );
+
+  // Observe-only by policy — log violations, warn, never block
   if (result.action === "block") {
-    console.error(`[AIRS] postToolUse violation detected for tool=${toolName} (observe-only, cannot block).`);
+    console.error(`[AIRS] PostToolUse violation detected for tool=${toolName} (observe-only by policy).`);
   }
-
-  respond();
 }
 
 main().catch((err) => {
   console.error(`[AIRS] Unhandled hook error: ${err}`);
-  respond();
 });

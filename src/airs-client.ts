@@ -5,7 +5,7 @@ import {
   AISecSDKException,
   type ScanResponse,
 } from "@cdot65/prisma-airs-sdk";
-import type { AirsConfig } from "./types.js";
+import type { AirsConfig, ScanCorrelation } from "./types.js";
 import { getApiKey } from "./config.js";
 import { CircuitBreaker } from "./circuit-breaker.js";
 import { Logger } from "./logger.js";
@@ -14,6 +14,15 @@ import { Logger } from "./logger.js";
 function buildSessionId(appUser: string): string {
   const date = new Date().toISOString().slice(0, 10);
   return `${appUser}:${date}`;
+}
+
+/** Build syncScan options from correlation IDs, falling back to app-user:date */
+function buildScanOptions(appUser: string, correlation?: ScanCorrelation) {
+  return {
+    sessionId: correlation?.sessionId || buildSessionId(appUser),
+    ...(correlation?.transactionId ? { trId: correlation.transactionId } : {}),
+    metadata: { app_name: "codex-cli", app_user: appUser },
+  };
 }
 
 let initialized = false;
@@ -73,6 +82,7 @@ export async function scanPromptContent(
   prompt: string,
   appUser: string,
   logger?: Logger,
+  correlation?: ScanCorrelation,
 ): Promise<{ result: ScanResponse; latencyMs: number }> {
   ensureInit(config, logger);
 
@@ -90,7 +100,7 @@ export async function scanPromptContent(
     const result = await scanner.syncScan(
       { profile_name: config.profiles.prompt },
       content,
-      { sessionId: buildSessionId(appUser), metadata: { app_name: "cursor-ide", app_user: appUser } },
+      buildScanOptions(appUser, correlation),
     );
     const latencyMs = Date.now() - start;
     breaker?.recordSuccess();
@@ -108,6 +118,7 @@ export async function scanResponseContent(
   codeResponse: string | undefined,
   appUser: string,
   logger?: Logger,
+  correlation?: ScanCorrelation,
 ): Promise<{ result: ScanResponse; latencyMs: number }> {
   ensureInit(config, logger);
 
@@ -128,7 +139,7 @@ export async function scanResponseContent(
     const result = await scanner.syncScan(
       { profile_name: config.profiles.response },
       content,
-      { sessionId: buildSessionId(appUser), metadata: { app_name: "cursor-ide", app_user: appUser } },
+      buildScanOptions(appUser, correlation),
     );
     const latencyMs = Date.now() - start;
     breaker?.recordSuccess();
@@ -148,6 +159,7 @@ export async function scanToolEventContent(
   output: string | undefined,
   appUser: string,
   logger?: Logger,
+  correlation?: ScanCorrelation,
 ): Promise<{ result: ScanResponse; latencyMs: number }> {
   ensureInit(config, logger);
 
@@ -175,7 +187,7 @@ export async function scanToolEventContent(
     const result = await scanner.syncScan(
       { profile_name: config.profiles.tool },
       content,
-      { sessionId: buildSessionId(appUser), metadata: { app_name: "cursor-ide", app_user: appUser } },
+      buildScanOptions(appUser, correlation),
     );
     const latencyMs = Date.now() - start;
     breaker?.recordSuccess();

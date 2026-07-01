@@ -48,6 +48,9 @@ export interface ContentLimitsConfig {
   truncate_bytes: number;
 }
 
+/** Behavior when AIRS is unreachable or scanning errors */
+export type FailMode = "open" | "closed";
+
 /** Top-level AIRS configuration (airs-config.json) */
 export interface AirsConfig {
   endpoint: string;
@@ -57,6 +60,8 @@ export interface AirsConfig {
   timeout_ms: number;
   retry: RetryConfig;
   logging: LoggingConfig;
+  /** "open" (default): never block on errors; "closed": block prompt/tool on errors */
+  fail_mode?: FailMode;
   /** Per-service enforcement actions (only applies in enforce mode) */
   enforcement?: EnforcementConfig;
   /** Circuit breaker settings */
@@ -93,6 +98,16 @@ export interface ExtractedContent {
 export interface HookResult {
   action: "pass" | "block";
   message?: string;
+  /** true when the scan itself failed (config/API error) rather than verdicted */
+  errored?: boolean;
+}
+
+/** AIRS correlation IDs derived from Codex hook input */
+export interface ScanCorrelation {
+  /** AIRS session_id — Codex session_id (falls back to app-user:date) */
+  sessionId?: string;
+  /** AIRS tr_id — turn_id:tool_use_id for tools, turn_id for prompt/stop */
+  transactionId?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -190,68 +205,9 @@ export interface CodexHooksConfig {
 }
 
 // ---------------------------------------------------------------------------
-// Legacy Cursor Hooks API types (v1) — removed with the Cursor entry points
-// in issue #3. Do not use in new code.
+// Legacy Cursor hooks.json types — used only by the install scripts until
+// the Codex installer lands in issue #5. Do not use in new code.
 // ---------------------------------------------------------------------------
-
-/** Common fields Cursor injects into every hook's stdin JSON */
-export interface CursorHookInput {
-  conversation_id?: string;
-  generation_id?: string;
-  model?: string;
-  hook_event_name: string;
-  cursor_version?: string;
-  workspace_roots?: string[];
-  user_email?: string;
-  transcript_path?: string;
-}
-
-/** stdin for beforeSubmitPrompt hook */
-export interface BeforeSubmitPromptInput extends CursorHookInput {
-  prompt: string;
-  attachments?: unknown[];
-}
-
-/** stdin for afterAgentResponse hook */
-export interface AfterAgentResponseInput extends CursorHookInput {
-  text: string;
-}
-
-/** stdin for beforeMCPExecution hook */
-export interface BeforeMCPExecutionInput extends CursorHookInput {
-  tool_name: string;
-  tool_input: unknown;
-}
-
-/** stdin for postToolUse hook */
-export interface PostToolUseInput extends CursorHookInput {
-  tool_name: string;
-  tool_input: unknown;
-  tool_output: unknown;
-  tool_use_id?: string;
-}
-
-/**
- * Cursor hook stdout JSON for beforeSubmitPrompt.
- * Uses continue: true/false to allow/block the prompt.
- */
-export interface BeforeSubmitPromptOutput {
-  continue: boolean;
-  user_message?: string;
-}
-
-/**
- * Cursor hook stdout JSON for most other hooks.
- * Uses permission: "allow"|"deny" to allow/block.
- */
-export interface CursorHookOutput {
-  /** "allow" passes through, "deny" blocks */
-  permission: "allow" | "deny";
-  /** Message shown to the user in Cursor's UI */
-  userMessage?: string;
-  /** Message injected into the agent context (invisible to the user) */
-  agentMessage?: string;
-}
 
 /** Cursor hooks.json file format */
 export interface CursorHooksConfig {

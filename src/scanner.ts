@@ -1,5 +1,5 @@
 import type { ScanResponse } from "@cdot65/prisma-airs-sdk";
-import type { AirsConfig, HookResult, ScanDirection, ScanLogEntry } from "./types.js";
+import type { AirsConfig, HookResult, ScanCorrelation, ScanDirection, ScanLogEntry } from "./types.js";
 import {
   scanPromptContent,
   scanResponseContent,
@@ -90,13 +90,10 @@ function extractDetections(result: ScanResponse): DetectionInfo {
 
 // ---------------------------------------------------------------------------
 // Resolve the developer's identity
-// Cursor provides CURSOR_USER_EMAIL; fall back to git config then OS user.
+// git config user.email, falling back to the OS user.
 // ---------------------------------------------------------------------------
 
 function getAppUser(): string {
-  const cursorEmail = process.env.CURSOR_USER_EMAIL;
-  if (cursorEmail) return cursorEmail;
-
   try {
     const { execSync } = require("node:child_process");
     return execSync("git config user.email", { encoding: "utf-8" }).trim();
@@ -154,7 +151,7 @@ function buildResponseBlockMessage(
     `  Category:       ${category}`,
     `  Profile:        ${profileName}`,
     "",
-    "  Note: Cursor's afterAgentResponse hook is observe-only.",
+    "  Note: Codex's Stop hook fires after the response streamed.",
     "  The response has already been displayed and cannot be retracted.",
     "",
     "  What to do:",
@@ -213,13 +210,56 @@ function buildMaskedMessage(maskedServices: string[]): string {
 }
 
 // ---------------------------------------------------------------------------
-// scanPrompt — called by beforeSubmitPrompt hook
+// Scan-error handling — fail_mode decides whether an errored scan blocks.
+// blockable=false (Stop/response direction) always fails open: the content
+// was already displayed, so blocking is meaningless.
+// ---------------------------------------------------------------------------
+
+function scanErrorResult(
+  config: AirsConfig,
+  direction: ScanDirection,
+  err: unknown,
+  logger: Logger,
+  blockable: boolean,
+): HookResult {
+  const isAuth = err instanceof AISecSDKException && err.message.includes("401");
+  const failClosed = blockable && config.fail_mode === "closed";
+
+  const message = isAuth
+    ? "AIRS authentication failed. Check your API key."
+    : failClosed
+      ? `AIRS scan failed — blocking ${direction} (fail-closed)`
+      : `AIRS scan failed — allowing ${direction} (fail-open)`;
+
+  logger.logScan({
+    event: "scan_error",
+    scan_id: "",
+    direction,
+    verdict: failClosed ? "block" : "allow",
+    action_taken: "error",
+    latency_ms: 0,
+    detection_services_triggered: [],
+    error: message,
+  });
+
+  if (failClosed) {
+    return { action: "block", message, errored: true };
+  }
+  if (isAuth) {
+    return { action: "pass", message: `Warning: ${message}`, errored: true };
+  }
+  return { action: "pass", errored: true };
+}
+
+// ---------------------------------------------------------------------------
+// scanPrompt — called by the UserPromptSubmit hook
 // ---------------------------------------------------------------------------
 
 export async function scanPrompt(
   config: AirsConfig,
   prompt: string,
   logger: Logger,
+  correlation?: ScanCorrelation,
 ): Promise<HookResult> {
   if (config.mode === "bypass") {
     logger.logEvent("scan_bypassed", { direction: "prompt" });
@@ -233,7 +273,7 @@ export async function scanPrompt(
   const appUser = getAppUser();
 
   try {
-    const { result, latencyMs } = await scanPromptContent(config, prompt, appUser, logger);
+    const { result, latencyMs } = await scanPromptContent(config, prompt, appUser, logger, correlation);
 
     const verdict = result.action === "block" ? "block" : "allow";
     const { services: detections, findings } = extractDetections(result);
@@ -288,39 +328,19 @@ export async function scanPrompt(
 
     return { action: "pass" };
   } catch (err) {
-    const isAuth =
-      err instanceof AISecSDKException && err.message.includes("401");
-
-    const message = isAuth
-      ? "AIRS authentication failed. Check your API key."
-      : "AIRS scan failed — allowing prompt (fail-open)";
-
-    logger.logScan({
-      event: "scan_error",
-      scan_id: "",
-      direction: "prompt",
-      verdict: "allow",
-      action_taken: "error",
-      latency_ms: 0,
-      detection_services_triggered: [],
-      error: message,
-    });
-
-    if (isAuth) {
-      return { action: "pass", message: `Warning: ${message}` };
-    }
-    return { action: "pass" };
+    return scanErrorResult(config, "prompt", err, logger, true);
   }
 }
 
 // ---------------------------------------------------------------------------
-// scanResponse — called by afterAgentResponse hook
+// scanResponse — called by the Stop hook (post-stream)
 // ---------------------------------------------------------------------------
 
 export async function scanResponse(
   config: AirsConfig,
   responseText: string,
   logger: Logger,
+  correlation?: ScanCorrelation,
 ): Promise<HookResult> {
   if (config.mode === "bypass") {
     logger.logEvent("scan_bypassed", { direction: "response" });
@@ -342,7 +362,7 @@ export async function scanResponse(
 
   try {
     const { result, latencyMs } = await scanResponseContent(
-      config, nlText, codeResponse, appUser, logger,
+      config, nlText, codeResponse, appUser, logger, correlation,
     );
 
     const verdict = result.action === "block" ? "block" : "allow";
@@ -395,33 +415,12 @@ export async function scanResponse(
 
     return { action: "pass" };
   } catch (err) {
-    const isAuth =
-      err instanceof AISecSDKException && err.message.includes("401");
-
-    const message = isAuth
-      ? "AIRS authentication failed. Check your API key."
-      : "AIRS scan failed — allowing response (fail-open)";
-
-    logger.logScan({
-      event: "scan_error",
-      scan_id: "",
-      direction: "response",
-      verdict: "allow",
-      action_taken: "error",
-      latency_ms: 0,
-      detection_services_triggered: [],
-      error: message,
-    });
-
-    if (isAuth) {
-      return { action: "pass", message: `Warning: ${message}` };
-    }
-    return { action: "pass" };
+    return scanErrorResult(config, "response", err, logger, false);
   }
 }
 
 // ---------------------------------------------------------------------------
-// scanToolEvent — called by beforeMCPExecution and postToolUse hooks
+// scanToolEvent — called by the PreToolUse and PostToolUse hooks
 // ---------------------------------------------------------------------------
 
 export async function scanToolEvent(
@@ -430,6 +429,7 @@ export async function scanToolEvent(
   input: string | undefined,
   output: string | undefined,
   logger: Logger,
+  correlation?: ScanCorrelation,
 ): Promise<HookResult> {
   if (config.mode === "bypass") {
     logger.logEvent("scan_bypassed", { direction: "tool" });
@@ -445,7 +445,7 @@ export async function scanToolEvent(
 
   try {
     const { result, latencyMs } = await scanToolEventContent(
-      config, parsed.server, parsed.tool, input, output, appUser, logger,
+      config, parsed.server, parsed.tool, input, output, appUser, logger, correlation,
     );
 
     const verdict = result.action === "block" ? "block" : "allow";
@@ -499,27 +499,6 @@ export async function scanToolEvent(
 
     return { action: "pass" };
   } catch (err) {
-    const isAuth =
-      err instanceof AISecSDKException && err.message.includes("401");
-
-    const message = isAuth
-      ? "AIRS authentication failed. Check your API key."
-      : "AIRS scan failed — allowing tool event (fail-open)";
-
-    logger.logScan({
-      event: "scan_error",
-      scan_id: "",
-      direction: "tool",
-      verdict: "allow",
-      action_taken: "error",
-      latency_ms: 0,
-      detection_services_triggered: [],
-      error: message,
-    });
-
-    if (isAuth) {
-      return { action: "pass", message: `Warning: ${message}` };
-    }
-    return { action: "pass" };
+    return scanErrorResult(config, "tool", err, logger, true);
   }
 }
