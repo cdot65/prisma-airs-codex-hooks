@@ -6,24 +6,31 @@ export interface ParsedToolName {
   tool: string;
 }
 
+const MCP_PREFIX = "mcp__";
+
+/** True when a Codex tool_name refers to an MCP tool (mcp__server__tool) */
+export function isMcpToolName(raw: string): boolean {
+  return raw.startsWith(MCP_PREFIX);
+}
+
 /**
- * Parse a Cursor tool_name into server and tool components.
+ * Parse a Codex tool_name into server and tool components.
  *
- * "MCP:github:get_file_contents" → { server: "github", tool: "get_file_contents" }
- * "MCP:filesystem:read:nested"   → { server: "filesystem", tool: "read:nested" }
- * "Bash"                         → { server: "cursor", tool: "Bash" }
+ * "mcp__github__get_file_contents"  → { server: "github", tool: "get_file_contents" }
+ * "mcp__filesystem__read__nested"   → { server: "filesystem", tool: "read__nested" }
+ * "Bash"                            → { server: "codex", tool: "Bash" }
  */
 export function parseToolName(raw: string): ParsedToolName {
-  if (raw.startsWith("MCP:")) {
-    const withoutPrefix = raw.slice(4);
-    const firstColon = withoutPrefix.indexOf(":");
-    if (firstColon === -1) {
+  if (isMcpToolName(raw)) {
+    const withoutPrefix = raw.slice(MCP_PREFIX.length);
+    const separator = withoutPrefix.indexOf("__");
+    if (separator === -1) {
       return { server: withoutPrefix, tool: withoutPrefix };
     }
     return {
-      server: withoutPrefix.slice(0, firstColon),
-      tool: withoutPrefix.slice(firstColon + 1),
+      server: withoutPrefix.slice(0, separator),
+      tool: withoutPrefix.slice(separator + 2),
     };
   }
-  return { server: "cursor", tool: raw };
+  return { server: "codex", tool: raw };
 }

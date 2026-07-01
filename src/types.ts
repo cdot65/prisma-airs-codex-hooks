@@ -96,8 +96,102 @@ export interface HookResult {
 }
 
 // ---------------------------------------------------------------------------
-// Cursor Hooks API types (v1)
-// See: https://docs.cursor.com/configuration/hooks
+// Codex Hooks API types
+// See: https://developers.openai.com/codex/hooks
+// ---------------------------------------------------------------------------
+
+/** Common fields Codex sends to every hook's stdin JSON */
+export interface CodexHookInput {
+  session_id?: string;
+  transcript_path?: string | null;
+  cwd?: string;
+  hook_event_name: string;
+  /** Codex extension: active model slug */
+  model?: string;
+  /** default | acceptEdits | plan | dontAsk | bypassPermissions */
+  permission_mode?: string;
+  /** Codex extension: active turn id (turn-scoped events) */
+  turn_id?: string;
+}
+
+/** stdin for the UserPromptSubmit hook */
+export interface UserPromptSubmitInput extends CodexHookInput {
+  prompt: string;
+}
+
+/** stdin for the PreToolUse hook */
+export interface PreToolUseInput extends CodexHookInput {
+  tool_name: string;
+  tool_use_id?: string;
+  tool_input: unknown;
+}
+
+/** stdin for the PostToolUse hook */
+export interface CodexPostToolUseInput extends CodexHookInput {
+  tool_name: string;
+  tool_use_id?: string;
+  tool_input: unknown;
+  tool_response: unknown;
+}
+
+/** stdin for the Stop hook */
+export interface StopInput extends CodexHookInput {
+  stop_hook_active?: boolean;
+  last_assistant_message?: string | null;
+}
+
+/** stdout to block a prompt in UserPromptSubmit */
+export interface UserPromptSubmitBlockOutput {
+  decision: "block";
+  reason: string;
+}
+
+/**
+ * stdout to deny a tool call in PreToolUse.
+ * Must NOT include continue/stopReason/suppressOutput — Codex marks the
+ * hook run failed and continues the tool call if those fields appear.
+ */
+export interface PreToolUseDenyOutput {
+  hookSpecificOutput: {
+    hookEventName: "PreToolUse";
+    permissionDecision: "deny";
+    permissionDecisionReason: string;
+  };
+}
+
+/** stdout for the Stop hook — Stop requires JSON output (plain text invalid) */
+export interface StopOutput {
+  continue: boolean;
+  stopReason?: string;
+  systemMessage?: string;
+}
+
+/** Single command handler inside a Codex hooks.json matcher group */
+export interface CodexHookHandler {
+  type: "command";
+  command: string;
+  /** seconds (Codex default 600) */
+  timeout?: number;
+  statusMessage?: string;
+}
+
+/** Matcher group for one Codex hook event */
+export interface CodexHookMatcherGroup {
+  /** regex applied per-event (tool name, trigger, source); omit to match all */
+  matcher?: string;
+  hooks: CodexHookHandler[];
+}
+
+/** Codex hooks.json file format */
+export interface CodexHooksConfig {
+  hooks: {
+    [eventName: string]: CodexHookMatcherGroup[];
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Legacy Cursor Hooks API types (v1) — removed with the Cursor entry points
+// in issue #3. Do not use in new code.
 // ---------------------------------------------------------------------------
 
 /** Common fields Cursor injects into every hook's stdin JSON */
