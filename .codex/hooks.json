@@ -1,0 +1,54 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/user-prompt-submit.mjs\"",
+            "timeout": 15,
+            "statusMessage": "Prisma AIRS prompt scan"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/pre-tool-use.mjs\"",
+            "timeout": 15,
+            "statusMessage": "Prisma AIRS MCP input scan"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/post-tool-use.mjs\"",
+            "timeout": 15,
+            "statusMessage": "Prisma AIRS MCP output audit"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/stop.mjs\"",
+            "timeout": 15,
+            "statusMessage": "Prisma AIRS response scan"
+          }
+        ]
+      }
+    ]
+  }
+}

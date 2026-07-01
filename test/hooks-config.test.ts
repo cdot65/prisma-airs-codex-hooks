@@ -3,7 +3,7 @@
 // Pure hooks.json generation/merge/removal — the installer scripts are thin
 // FS wrappers around these functions.
 import { describe, it, expect } from "vitest";
-import { buildAirsHooks, mergeAirsHooks, removeAirsHooks } from "../src/hooks-config.js";
+import { buildAirsHooks, mergeAirsHooks, removeAirsHooks, projectHookCommand, globalHookCommand } from "../src/hooks-config.js";
 import type { CodexHooksConfig } from "../src/types.js";
 
 const commandFor = (bundle: string) => `node "/tmp/.codex/hooks/${bundle}"`;
@@ -113,5 +113,30 @@ describe("removeAirsHooks", () => {
   it("reports zero removals on a config without AIRS hooks", () => {
     const { removed } = removeAirsHooks({ hooks: {} });
     expect(removed).toBe(0);
+  });
+});
+
+describe("hook commands", () => {
+  // Codex runs hook commands with a system PATH; nvm-managed node is not on
+  // it (exit 127). Commands must use the absolute node binary, never "node".
+  it("project command uses absolute node binary and git-root resolution", () => {
+    const cmd = projectHookCommand("stop.mjs", "/Users/x/.nvm/versions/node/v22.14.0/bin/node");
+    expect(cmd).toBe(
+      '"/Users/x/.nvm/versions/node/v22.14.0/bin/node" "$(git rev-parse --show-toplevel)/.codex/hooks/stop.mjs"',
+    );
+  });
+
+  it("global command uses absolute node binary and absolute bundle path", () => {
+    const cmd = globalHookCommand("pre-tool-use.mjs", "/opt/node/bin/node", "/Users/x/.codex/hooks");
+    expect(cmd).toBe('"/opt/node/bin/node" "/Users/x/.codex/hooks/pre-tool-use.mjs"');
+  });
+
+  it("never emits a bare node invocation", () => {
+    for (const cmd of [
+      projectHookCommand("stop.mjs", "/opt/node/bin/node"),
+      globalHookCommand("stop.mjs", "/opt/node/bin/node", "/tmp/hooks"),
+    ]) {
+      expect(cmd.startsWith("node ")).toBe(false);
+    }
   });
 });
