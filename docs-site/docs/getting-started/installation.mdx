@@ -25,14 +25,19 @@ npm install -g @cdot65/prisma-airs-codex-hooks
 
 This installs the CLI globally and makes the `prisma-airs-codex-hooks` command available system-wide.
 
+:::note[Requires a published release]
+This package is not yet published to npm (v0.1.0 pending release), so this command currently returns a 404 — use the **From source** tab until the first release lands.
+:::
+
 </TabItem>
 <TabItem value="source" label="From source">
 
 ```bash
 git clone https://github.com/cdot65/prisma-airs-codex-hooks.git
 cd prisma-airs-codex-hooks
-npm install
-npm run build
+corepack enable   # provides the pinned pnpm 10
+pnpm install
+pnpm build
 ```
 
 </TabItem>
@@ -75,8 +80,8 @@ prisma-airs-codex-hooks validate-detection
 <TabItem value="source" label="From source">
 
 ```bash
-npm run validate-connection
-npm run validate-detection
+pnpm validate-connection
+pnpm validate-detection
 ```
 
 </TabItem>
@@ -95,7 +100,7 @@ prisma-airs-codex-hooks install --global
 <TabItem value="source" label="From source">
 
 ```bash
-npm run install-hooks -- --global
+pnpm install-hooks --global
 ```
 
 </TabItem>
@@ -144,7 +149,7 @@ prisma-airs-codex-hooks verify --global
 <TabItem value="source" label="From source">
 
 ```bash
-npm run verify-hooks -- --global
+pnpm verify-hooks --global
 ```
 
 </TabItem>
@@ -163,7 +168,7 @@ prisma-airs-codex-hooks uninstall --global
 <TabItem value="source" label="From source">
 
 ```bash
-npm run uninstall-hooks -- --global
+pnpm uninstall-hooks --global
 ```
 
 </TabItem>

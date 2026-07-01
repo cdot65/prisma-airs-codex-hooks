@@ -2,10 +2,12 @@
 
 ## Setup
 
+Requires **pnpm 10** — the repo pins `pnpm@10.34.4` via the `packageManager` field, so `corepack enable` gets you the right version automatically. The repository is a pnpm workspace (root package + `docs-site`); one `pnpm install` at the root installs both.
+
 ```bash
 git clone https://github.com/cdot65/prisma-airs-codex-hooks.git
 cd prisma-airs-codex-hooks
-npm install
+pnpm install
 ```
 
 ## Development Workflow
@@ -15,12 +17,12 @@ npm install
 Edit TypeScript in `src/`. After changes:
 
 ```bash
-npm run build      # compile to dist/ + bundle dist/hooks/*.mjs
-npm test           # run all tests
-npm run typecheck  # type check
+pnpm build      # compile to dist/ + bundle dist/hooks/*.mjs
+pnpm test       # run all tests
+pnpm typecheck  # type check
 ```
 
-`npm run build` runs `tsc` and then esbuild, producing self-contained minified bundles in `dist/hooks/*.mjs` — these are the artifacts the installer copies into `.codex/hooks/`.
+`pnpm build` runs `tsc` and then esbuild, producing self-contained minified bundles in `dist/hooks/*.mjs` — these are the artifacts the installer copies into `.codex/hooks/`.
 
 ### Development Mode Hooks
 
@@ -37,8 +39,8 @@ For rapid iteration, point `.codex/hooks.json` at TypeScript source (no rebuild 
 This adds ~1.5s per invocation. Switch back to the bundles for production:
 
 ```bash
-npm run build
-npm run install-hooks -- --global
+pnpm build
+pnpm install-hooks --global
 ```
 
 :::note[Re-trust after changes]
@@ -48,8 +50,8 @@ Codex records hook trust against the definition's hash. After editing `hooks.jso
 ### Running Tests
 
 ```bash
-npm test              # all tests once
-npm run test:watch    # watch mode
+pnpm test             # all tests once
+pnpm test:watch       # watch mode
 ```
 
 Tests include:
@@ -64,6 +66,15 @@ Tests live in `test/` and use vitest. Each module has a corresponding test file:
 ```
 src/scanner.ts     → test/scanner.test.ts
 src/config.ts      → test/config.test.ts
+```
+
+### Working on the Docs
+
+The Docusaurus site is the `docs-site` workspace package:
+
+```bash
+pnpm docs:serve                  # local dev server
+pnpm --filter docs-site build    # production build (same as pnpm docs:build)
 ```
 
 ## Project Structure
@@ -81,6 +92,10 @@ docs-site/              Docusaurus documentation
 ## Pull Request Guidelines
 
 - Branch from `main`
-- Ensure `npm test` and `npm run typecheck` pass
+- Ensure `pnpm test` and `pnpm typecheck` pass
 - Include tests for new functionality
-- Run `npm run build` to verify compilation and bundling
+- Run `pnpm build` to verify compilation and bundling
+
+## Publishing
+
+Releases publish to npm automatically: creating a GitHub release triggers the publish workflow, which runs `pnpm publish --provenance` using npm OIDC trusted publishing (no tokens stored in the repo).

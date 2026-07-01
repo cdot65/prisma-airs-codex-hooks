@@ -16,43 +16,47 @@ Published as `@cdot65/prisma-airs-codex-hooks` on npm.
 - **Runtime:** Node.js 18+ (native fetch, crypto.randomUUID)
 - **Build:** esbuild → single-file minified `.mjs` bundles per hook (self-contained, SDK bundled); tsc for typecheck
 - **Test framework:** vitest
-- **Package manager:** npm
+- **Package manager:** pnpm (workspace: root + docs-site; pinned via packageManager field)
 - **Docs:** Docusaurus (docs-site/, deployed to GitHub Pages)
 - **CI:** GitHub Actions (typecheck, build, test, docs-build)
-- **Publish:** npm OIDC via GitHub Actions on release
+- **Publish:** `pnpm publish --provenance` with npm OIDC trusted publishing via GitHub Actions on release
 
 ## Commands
 
 ```bash
-# install deps
-npm install
+# install deps (workspace: root + docs-site)
+pnpm install
 
 # run all tests
-npm test
+pnpm test
 
 # run single test
-npx vitest run test/airs-client.test.ts
+pnpm exec vitest run test/airs-client.test.ts
 
 # type check
-npm run typecheck
+pnpm typecheck
 
 # build bundled JS
-npm run build
+pnpm build
 
 # validate AIRS connectivity
-npm run validate-connection
+pnpm validate-connection
 
 # validate detection
-npm run validate-detection
+pnpm validate-detection
 
 # install hooks globally
-npm run install-hooks -- --global
+pnpm install-hooks --global
 
 # verify hooks
-npm run verify-hooks
+pnpm verify-hooks
 
 # scan stats
-npm run stats
+pnpm stats
+
+# docs dev server / build
+pnpm docs:serve
+pnpm docs:build
 ```
 
 ## Architecture

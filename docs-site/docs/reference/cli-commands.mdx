@@ -37,47 +37,47 @@ prisma-airs-codex-hooks uninstall --global
 After `install`, open Codex and run `/hooks` to review and trust the new hook definitions — Codex skips untrusted hooks.
 :::
 
-## npm run scripts (from source)
+## pnpm scripts (from source)
 
-When working from a cloned repository:
+When working from a cloned repository (pnpm workspace — see [Contributing](../development/contributing)):
 
 ### Build & Test
 
 | Command | Description |
 |---------|-------------|
-| `npm run build` | Compile TypeScript and bundle hooks to `dist/hooks/*.mjs` |
-| `npm test` | Run all tests |
-| `npm run test:watch` | Run tests in watch mode |
-| `npm run typecheck` | TypeScript type checking (`tsc --noEmit`) |
+| `pnpm build` | Compile TypeScript and bundle hooks to `dist/hooks/*.mjs` |
+| `pnpm test` | Run all tests |
+| `pnpm test:watch` | Run tests in watch mode |
+| `pnpm typecheck` | TypeScript type checking (`tsc --noEmit`) |
 
 ### Hook Management
 
 | Command | Description |
 |---------|-------------|
-| `npm run install-hooks` | Install hooks to `<git-root>/.codex/hooks.json` (project-level) |
-| `npm run install-hooks -- --global` | Install hooks to `~/.codex/hooks.json` (all sessions) |
-| `npm run uninstall-hooks` | Remove AIRS entries from project-level hooks.json |
-| `npm run uninstall-hooks -- --global` | Remove AIRS entries from global hooks.json |
-| `npm run verify-hooks` | Check hooks registration, bundles, config, and env vars |
+| `pnpm install-hooks` | Install hooks to `<git-root>/.codex/hooks.json` (project-level) |
+| `pnpm install-hooks --global` | Install hooks to `~/.codex/hooks.json` (all sessions) |
+| `pnpm uninstall-hooks` | Remove AIRS entries from project-level hooks.json |
+| `pnpm uninstall-hooks --global` | Remove AIRS entries from global hooks.json |
+| `pnpm verify-hooks` | Check hooks registration, bundles, config, and env vars |
 
 ### Validation
 
 | Command | Description |
 |---------|-------------|
-| `npm run validate-connection` | Test AIRS API connectivity with your credentials |
-| `npm run validate-detection` | Send a test prompt injection and verify detection |
+| `pnpm validate-connection` | Test AIRS API connectivity with your credentials |
+| `pnpm validate-detection` | Send a test prompt injection and verify detection |
 
 ### Statistics
 
 | Command | Description |
 |---------|-------------|
-| `npm run stats` | Show scan statistics (last 24h) |
-| `npm run stats -- --since 7d` | Stats for the last 7 days |
-| `npm run stats -- --since 1d --json` | Stats as JSON output |
+| `pnpm stats` | Show scan statistics (last 24h) |
+| `pnpm stats --since 7d` | Stats for the last 7 days |
+| `pnpm stats --since 1d --json` | Stats as JSON output |
 
 ### Documentation
 
 | Command | Description |
 |---------|-------------|
-| `npm run docs:serve` | Local docs preview (Docusaurus dev server) |
-| `npm run docs:build` | Build the static docs site to `docs-site/build/` |
+| `pnpm docs:serve` | Local docs preview (Docusaurus dev server) |
+| `pnpm docs:build` | Build the static docs site to `docs-site/build/` |
