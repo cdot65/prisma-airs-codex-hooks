@@ -30,7 +30,8 @@ const COMMANDS: Record<string, string> = {
 };
 
 function usage(): void {
-  console.log(`
+  console.log(
+    `
 Prisma AIRS Codex Hooks
 
 Usage:
@@ -40,7 +41,8 @@ Usage:
   prisma-airs-codex-hooks validate-connection     Test AIRS API connectivity
   prisma-airs-codex-hooks validate-detection      Verify detection is working
   prisma-airs-codex-hooks stats [--since] [--json] Show scan statistics
-`.trim());
+`.trim(),
+  );
 }
 
 if (!command || command === "--help" || command === "-h") {

@@ -21,11 +21,9 @@ async function main() {
   });
 
   const start = Date.now();
-  const result = await scanner.syncScan(
-    { profile_name: config.profiles.prompt },
-    content,
-    { metadata: { app_name: "codex-cli", app_user: "validation-script" } },
-  );
+  const result = await scanner.syncScan({ profile_name: config.profiles.prompt }, content, {
+    metadata: { app_name: "codex-cli", app_user: "validation-script" },
+  });
   const latencyMs = Date.now() - start;
 
   console.log(`Endpoint:  ${config.endpoint}`);

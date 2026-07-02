@@ -1,0 +1,7 @@
+dist/
+coverage/
+docs-site/
+.codex/
+.claude/
+pnpm-lock.yaml
+CHANGELOG.md

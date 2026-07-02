@@ -117,9 +117,7 @@ function main() {
     }
   }
 
-  const hooksConfig = existing
-    ? mergeAirsHooks(existing, commandFor)
-    : buildAirsHooks(commandFor);
+  const hooksConfig = existing ? mergeAirsHooks(existing, commandFor) : buildAirsHooks(commandFor);
 
   writeFileSync(HOOKS_JSON_PATH, JSON.stringify(hooksConfig, null, 2) + "\n", "utf-8");
   console.log(`  Wrote ${HOOKS_JSON_PATH}`);

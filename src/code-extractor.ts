@@ -43,12 +43,12 @@ export function extractCode(agentResponse: string): ExtractedContent {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const isIndented = /^(?:    |\t)/.test(line);
+    const isIndented = /^(?: {4}|\t)/.test(line);
     const prevBlank = i === 0 || lines[i - 1].trim() === "";
 
     if (isIndented && (inBlock || prevBlank)) {
       inBlock = true;
-      currentBlock.push(line.replace(/^(?:    |\t)/, ""));
+      currentBlock.push(line.replace(/^(?: {4}|\t)/, ""));
     } else {
       if (inBlock && currentBlock.length > 0) {
         codeBlocks.push(currentBlock.join("\n"));
@@ -66,7 +66,10 @@ export function extractCode(agentResponse: string): ExtractedContent {
 
   if (codeBlocks.length > 0) {
     return {
-      naturalLanguage: nlLines.join("\n").replace(/\n{3,}/g, "\n\n").trim(),
+      naturalLanguage: nlLines
+        .join("\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim(),
       codeBlocks,
       languages,
     };

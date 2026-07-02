@@ -47,7 +47,9 @@ async function main(): Promise<void> {
   } catch (err) {
     console.error(`[AIRS] Config error: ${err}`);
     if (readFailMode() === "closed") {
-      blockPrompt("Prisma AIRS is not configured and fail_mode is closed. Fix the AIRS hook configuration to submit prompts.");
+      blockPrompt(
+        "Prisma AIRS is not configured and fail_mode is closed. Fix the AIRS hook configuration to submit prompts.",
+      );
     } else {
       allowThrough();
     }

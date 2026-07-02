@@ -56,7 +56,9 @@ async function main(): Promise<void> {
   } catch (err) {
     console.error(`[AIRS] Config error: ${err}`);
     if (readFailMode() === "closed") {
-      denyTool("Prisma AIRS is not configured and fail_mode is closed. Fix the AIRS hook configuration to run MCP tools.");
+      denyTool(
+        "Prisma AIRS is not configured and fail_mode is closed. Fix the AIRS hook configuration to run MCP tools.",
+      );
     } else {
       allowThrough();
     }
@@ -80,7 +82,12 @@ async function main(): Promise<void> {
   }
 
   const result = await scanToolEvent(
-    config, toolName, limited.content, undefined, logger, buildCorrelation(input),
+    config,
+    toolName,
+    limited.content,
+    undefined,
+    logger,
+    buildCorrelation(input),
   );
 
   if (result.action === "block") {

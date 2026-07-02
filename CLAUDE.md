@@ -86,22 +86,22 @@ MCP tool names use `mcp__server__tool` format.
 
 ### Core Modules
 
-| Module | Purpose |
-|---|---|
-| `src/config.ts` | Load/validate airs-config.json (project `.codex/hooks/` → `~/.codex/hooks/` fallback); `fail_mode` open/closed |
-| `src/airs-client.ts` | SDK wrapper with circuit breaker |
-| `src/logger.ts` | Structured JSON Lines logging with rotation |
-| `src/types.ts` | Codex hook I/O + shared TypeScript interfaces |
-| `src/hooks/user-prompt-submit.ts` | Codex UserPromptSubmit entry point (can block) |
-| `src/hooks/pre-tool-use.ts` | Codex PreToolUse entry point, MCP-only (can block) |
-| `src/hooks/post-tool-use.ts` | Codex PostToolUse entry point, MCP-only (observe-only) |
-| `src/hooks/stop.ts` | Codex Stop entry point (post-stream; terminates on block verdict) |
-| `src/code-extractor.ts` | Separates fenced/indented code blocks from natural language |
-| `src/scanner.ts` | Orchestrates prompt vs response scanning + DLP masking |
-| `src/tool-name-parser.ts` | Parse `mcp__server__tool` format |
-| `src/content-limits.ts` | Configurable skip/truncate before scanning |
-| `src/circuit-breaker.ts` | Failure tracking with cooldown bypass |
-| `src/cli.ts` | CLI entry point (`prisma-airs-codex-hooks` command) |
+| Module                            | Purpose                                                                                                        |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `src/config.ts`                   | Load/validate airs-config.json (project `.codex/hooks/` → `~/.codex/hooks/` fallback); `fail_mode` open/closed |
+| `src/airs-client.ts`              | SDK wrapper with circuit breaker                                                                               |
+| `src/logger.ts`                   | Structured JSON Lines logging with rotation                                                                    |
+| `src/types.ts`                    | Codex hook I/O + shared TypeScript interfaces                                                                  |
+| `src/hooks/user-prompt-submit.ts` | Codex UserPromptSubmit entry point (can block)                                                                 |
+| `src/hooks/pre-tool-use.ts`       | Codex PreToolUse entry point, MCP-only (can block)                                                             |
+| `src/hooks/post-tool-use.ts`      | Codex PostToolUse entry point, MCP-only (observe-only)                                                         |
+| `src/hooks/stop.ts`               | Codex Stop entry point (post-stream; terminates on block verdict)                                              |
+| `src/code-extractor.ts`           | Separates fenced/indented code blocks from natural language                                                    |
+| `src/scanner.ts`                  | Orchestrates prompt vs response scanning + DLP masking                                                         |
+| `src/tool-name-parser.ts`         | Parse `mcp__server__tool` format                                                                               |
+| `src/content-limits.ts`           | Configurable skip/truncate before scanning                                                                     |
+| `src/circuit-breaker.ts`          | Failure tracking with cooldown bypass                                                                          |
+| `src/cli.ts`                      | CLI entry point (`prisma-airs-codex-hooks` command)                                                            |
 
 ### Key Design Decisions
 
@@ -130,6 +130,7 @@ MCP tool names use `mcp__server__tool` format.
 ### Configuration
 
 Hooks register in `.codex/hooks.json` (project) or `~/.codex/hooks.json` (global). AIRS config lives at `.codex/hooks/airs-config.json` or `~/.codex/hooks/airs-config.json`. Environment variables:
+
 - `PRISMA_AIRS_API_KEY` — x-pan-token for AIRS API (required)
 - `PRISMA_AIRS_PROFILE_NAME` — AIRS security profile for all directions (recommended)
 - `PRISMA_AIRS_API_ENDPOINT` — regional API base URL (optional, defaults to US)

@@ -36,9 +36,7 @@ describe("getEnforcementAction", () => {
   });
 
   it("returns allow when all findings map to allow", () => {
-    const findings: Finding[] = [
-      { detection_service: "toxicity", verdict: "low", detail: "" },
-    ];
+    const findings: Finding[] = [{ detection_service: "toxicity", verdict: "low", detail: "" }];
     expect(getEnforcementAction(findings, { toxicity: "allow" })).toBe("allow");
   });
 
@@ -52,10 +50,7 @@ describe("getEnforcementAction", () => {
 
 describe("maskContent", () => {
   it("replaces sensitive patterns with asterisks", () => {
-    const result = maskContent("My API key is sk-12345 and secret is abc", [
-      "sk-12345",
-      "abc",
-    ]);
+    const result = maskContent("My API key is sk-12345 and secret is abc", ["sk-12345", "abc"]);
     expect(result).toBe("My API key is ******** and secret is ***");
   });
 

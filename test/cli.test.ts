@@ -19,7 +19,11 @@ function run(args: string[], cwd: string) {
     env: { ...process.env, PRISMA_AIRS_API_KEY: "test-key" },
     timeout: 60000,
   });
-  return { stdout: result.stdout ?? "", stderr: result.stderr ?? "", exitCode: result.status ?? -1 };
+  return {
+    stdout: result.stdout ?? "",
+    stderr: result.stderr ?? "",
+    exitCode: result.status ?? -1,
+  };
 }
 
 describe("cli", () => {

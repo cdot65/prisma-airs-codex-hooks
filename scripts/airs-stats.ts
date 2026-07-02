@@ -53,17 +53,27 @@ function main() {
   const cutoff = new Date(Date.now() - sinceMs).toISOString();
   const lines = readFileSync(logPath, "utf-8").trim().split("\n").filter(Boolean);
   const entries: LogEntry[] = lines
-    .map((l) => { try { return JSON.parse(l); } catch { return null; } })
+    .map((l) => {
+      try {
+        return JSON.parse(l);
+      } catch {
+        return null;
+      }
+    })
     .filter((e): e is LogEntry => e !== null && e.timestamp >= cutoff);
 
   const scans = entries.filter((e) => e.event === "scan_complete");
   const prompts = scans.filter((e) => e.direction === "prompt");
   const responses = scans.filter((e) => e.direction === "response");
 
-  const allowed = scans.filter((e) => e.action_taken === "allowed" || e.action_taken === "observed").length;
+  const allowed = scans.filter(
+    (e) => e.action_taken === "allowed" || e.action_taken === "observed",
+  ).length;
   const blocked = scans.filter((e) => e.action_taken === "blocked").length;
   const observed = scans.filter((e) => e.action_taken === "observed").length;
-  const errors = scans.filter((e) => e.action_taken === "error" || e.action_taken === "bypassed").length;
+  const errors = scans.filter(
+    (e) => e.action_taken === "error" || e.action_taken === "bypassed",
+  ).length;
 
   const detections: Record<string, number> = {};
   for (const s of scans) {
@@ -95,7 +105,7 @@ function main() {
     return;
   }
 
-  const pct = (n: number) => scans.length > 0 ? ((n / scans.length) * 100).toFixed(1) : "0.0";
+  const pct = (n: number) => (scans.length > 0 ? ((n / scans.length) * 100).toFixed(1) : "0.0");
 
   console.log(`Prisma AIRS Hook Statistics`);
   console.log(`${"─".repeat(45)}`);

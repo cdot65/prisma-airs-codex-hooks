@@ -1,5 +1,6 @@
+import { execSync } from "node:child_process";
 import type { ScanResponse } from "@cdot65/prisma-airs-sdk";
-import type { AirsConfig, HookResult, ScanCorrelation, ScanDirection, ScanLogEntry } from "./types.js";
+import type { AirsConfig, HookResult, ScanCorrelation, ScanDirection } from "./types.js";
 import {
   scanPromptContent,
   scanResponseContent,
@@ -9,7 +10,7 @@ import {
 import { parseToolName } from "./tool-name-parser.js";
 import { extractCode, joinCodeBlocks } from "./code-extractor.js";
 import { Logger } from "./logger.js";
-import { getEnforcementAction, maskContent, DEFAULT_ENFORCEMENT } from "./dlp-masking.js";
+import { getEnforcementAction, DEFAULT_ENFORCEMENT } from "./dlp-masking.js";
 
 // ---------------------------------------------------------------------------
 // Human-readable detection labels for UX messages
@@ -43,46 +44,86 @@ function extractDetections(result: ScanResponse): DetectionInfo {
   if (pd) {
     if (pd.injection) {
       services.push("prompt_injection");
-      findings.push({ detection_service: "prompt_injection", verdict: "malicious", detail: "Prompt injection detected" });
+      findings.push({
+        detection_service: "prompt_injection",
+        verdict: "malicious",
+        detail: "Prompt injection detected",
+      });
     }
     if (pd.dlp) {
       services.push("dlp");
-      findings.push({ detection_service: "dlp", verdict: "detected", detail: "Sensitive data detected in prompt" });
+      findings.push({
+        detection_service: "dlp",
+        verdict: "detected",
+        detail: "Sensitive data detected in prompt",
+      });
     }
     if (pd.toxic_content) {
       services.push("toxicity");
-      findings.push({ detection_service: "toxicity", verdict: "toxic", detail: "Toxic content detected" });
+      findings.push({
+        detection_service: "toxicity",
+        verdict: "toxic",
+        detail: "Toxic content detected",
+      });
     }
     if (pd.url_cats) {
       services.push("url_categorization");
-      findings.push({ detection_service: "url_categorization", verdict: "suspicious", detail: "Suspicious URL detected" });
+      findings.push({
+        detection_service: "url_categorization",
+        verdict: "suspicious",
+        detail: "Suspicious URL detected",
+      });
     }
     if (pd.malicious_code) {
       services.push("malicious_code");
-      findings.push({ detection_service: "malicious_code", verdict: "malicious", detail: "Malicious code detected" });
+      findings.push({
+        detection_service: "malicious_code",
+        verdict: "malicious",
+        detail: "Malicious code detected",
+      });
     }
     if (pd.topic_violation) {
       services.push("custom_topic");
-      findings.push({ detection_service: "custom_topic", verdict: "violation", detail: "Topic policy violation" });
+      findings.push({
+        detection_service: "custom_topic",
+        verdict: "violation",
+        detail: "Topic policy violation",
+      });
     }
   }
   const rd = result.response_detected;
   if (rd) {
     if (rd.malicious_code) {
       services.push("malicious_code");
-      findings.push({ detection_service: "malicious_code", verdict: "malicious", detail: "Malicious code detected in response" });
+      findings.push({
+        detection_service: "malicious_code",
+        verdict: "malicious",
+        detail: "Malicious code detected in response",
+      });
     }
     if (rd.dlp) {
       services.push("dlp");
-      findings.push({ detection_service: "dlp", verdict: "detected", detail: "Sensitive data detected in response" });
+      findings.push({
+        detection_service: "dlp",
+        verdict: "detected",
+        detail: "Sensitive data detected in response",
+      });
     }
     if (rd.toxic_content) {
       services.push("toxicity");
-      findings.push({ detection_service: "toxicity", verdict: "toxic", detail: "Toxic content in response" });
+      findings.push({
+        detection_service: "toxicity",
+        verdict: "toxic",
+        detail: "Toxic content in response",
+      });
     }
     if (rd.url_cats) {
       services.push("url_categorization");
-      findings.push({ detection_service: "url_categorization", verdict: "suspicious", detail: "Suspicious URL in response" });
+      findings.push({
+        detection_service: "url_categorization",
+        verdict: "suspicious",
+        detail: "Suspicious URL in response",
+      });
     }
   }
   return { services, findings };
@@ -95,7 +136,6 @@ function extractDetections(result: ScanResponse): DetectionInfo {
 
 function getAppUser(): string {
   try {
-    const { execSync } = require("node:child_process");
     return execSync("git config user.email", { encoding: "utf-8" }).trim();
   } catch {
     return process.env.USER ?? process.env.USERNAME ?? "unknown";
@@ -273,17 +313,19 @@ export async function scanPrompt(
   const appUser = getAppUser();
 
   try {
-    const { result, latencyMs } = await scanPromptContent(config, prompt, appUser, logger, correlation);
+    const { result, latencyMs } = await scanPromptContent(
+      config,
+      prompt,
+      appUser,
+      logger,
+      correlation,
+    );
 
     const verdict = result.action === "block" ? "block" : "allow";
     const { services: detections, findings } = extractDetections(result);
 
     const actionTaken =
-      config.mode === "observe"
-        ? "observed"
-        : verdict === "block"
-          ? "blocked"
-          : "allowed";
+      config.mode === "observe" ? "observed" : verdict === "block" ? "blocked" : "allowed";
 
     logger.logScan({
       event: "scan_complete",
@@ -354,26 +396,25 @@ export async function scanResponse(
   const appUser = getAppUser();
   const extracted = extractCode(responseText);
   const codeResponse =
-    extracted.codeBlocks.length > 0
-      ? joinCodeBlocks(extracted.codeBlocks)
-      : undefined;
+    extracted.codeBlocks.length > 0 ? joinCodeBlocks(extracted.codeBlocks) : undefined;
 
   const nlText = codeResponse ? extracted.naturalLanguage : responseText;
 
   try {
     const { result, latencyMs } = await scanResponseContent(
-      config, nlText, codeResponse, appUser, logger, correlation,
+      config,
+      nlText,
+      codeResponse,
+      appUser,
+      logger,
+      correlation,
     );
 
     const verdict = result.action === "block" ? "block" : "allow";
     const { services: detections, findings } = extractDetections(result);
 
     const actionTaken =
-      config.mode === "observe"
-        ? "observed"
-        : verdict === "block"
-          ? "blocked"
-          : "allowed";
+      config.mode === "observe" ? "observed" : verdict === "block" ? "blocked" : "allowed";
 
     logger.logScan({
       event: "scan_complete",
@@ -445,18 +486,21 @@ export async function scanToolEvent(
 
   try {
     const { result, latencyMs } = await scanToolEventContent(
-      config, parsed.server, parsed.tool, input, output, appUser, logger, correlation,
+      config,
+      parsed.server,
+      parsed.tool,
+      input,
+      output,
+      appUser,
+      logger,
+      correlation,
     );
 
     const verdict = result.action === "block" ? "block" : "allow";
     const { services: detections, findings } = extractDetections(result);
 
     const actionTaken =
-      config.mode === "observe"
-        ? "observed"
-        : verdict === "block"
-          ? "blocked"
-          : "allowed";
+      config.mode === "observe" ? "observed" : verdict === "block" ? "blocked" : "allowed";
 
     logger.logScan({
       event: "scan_complete",

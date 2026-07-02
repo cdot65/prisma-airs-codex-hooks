@@ -18,9 +18,14 @@ vi.mock("@cdot65/prisma-airs-sdk", () => {
   };
 });
 
-import { scanPromptContent, scanResponseContent, scanToolEventContent, resetInit } from "../src/airs-client.js";
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const { __mockSyncScan: mockSyncScan } = await import("@cdot65/prisma-airs-sdk") as any;
+import {
+  scanPromptContent,
+  scanResponseContent,
+  scanToolEventContent,
+  resetInit,
+} from "../src/airs-client.js";
+
+const { __mockSyncScan: mockSyncScan } = (await import("@cdot65/prisma-airs-sdk")) as any;
 
 const mockConfig: AirsConfig = {
   endpoint: "https://test.api.prismacloud.io",
@@ -122,9 +127,9 @@ describe("airs-client (SDK-backed)", () => {
   it("propagates SDK exceptions", async () => {
     mockSyncScan.mockRejectedValue(new Error("network error"));
 
-    await expect(
-      scanPromptContent(mockConfig, "test", "user@test.com"),
-    ).rejects.toThrow("network error");
+    await expect(scanPromptContent(mockConfig, "test", "user@test.com")).rejects.toThrow(
+      "network error",
+    );
   });
 
   describe("scanToolEventContent", () => {

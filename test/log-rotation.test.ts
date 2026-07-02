@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { writeFileSync, existsSync, readFileSync, rmSync, mkdirSync } from "node:fs";
+import { writeFileSync, existsSync, rmSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { rotateIfNeeded } from "../src/log-rotation.js";
 

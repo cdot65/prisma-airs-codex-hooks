@@ -56,7 +56,10 @@ export function globalHookCommand(bundle: string, nodeBin: string, hooksDir: str
   return `"${nodeBin}" "${hooksDir}/${bundle}"`;
 }
 
-function buildGroup(spec: AirsHookSpec, commandFor: (bundle: string) => string): CodexHookMatcherGroup {
+function buildGroup(
+  spec: AirsHookSpec,
+  commandFor: (bundle: string) => string,
+): CodexHookMatcherGroup {
   return {
     ...(spec.matcher ? { matcher: spec.matcher } : {}),
     hooks: [

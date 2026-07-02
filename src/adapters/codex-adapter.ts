@@ -1,8 +1,4 @@
-import type {
-  UserPromptSubmitBlockOutput,
-  PreToolUseDenyOutput,
-  StopOutput,
-} from "../types.js";
+import type { UserPromptSubmitBlockOutput, PreToolUseDenyOutput, StopOutput } from "../types.js";
 
 /**
  * Codex hook stdout builders.
