@@ -3,7 +3,7 @@
 ## Running Tests
 
 ```bash
-pnpm test             # all 147 tests, 15 suites
+pnpm test             # all 151 tests, 15 suites
 pnpm test:watch       # watch mode with re-run on change
 ```
 
@@ -13,11 +13,11 @@ pnpm test:watch       # watch mode with re-run on change
 |-------|-------|---------------|
 | `config.test.ts` | 22 | Config loading, validation, env var resolution, `.codex` path walk-up, `fail_mode`, `readFailMode` |
 | `airs-client.test.ts` | 9 | SDK wrapper, prompt/response scanning, block verdicts |
-| `scanner.test.ts` | 21 | Observe/enforce/bypass modes, UX messages, fail-open/fail-closed, correlation pass-through |
+| `scanner.test.ts` | 22 | Observe/enforce/bypass modes, UX messages, separator width, fail-open/fail-closed, correlation pass-through |
 | `code-extractor.test.ts` | 10 | Fenced, indented, heuristic extraction, mixed content |
 | `codex-adapter.test.ts` | 6 | Exact Codex stdout shapes per event (block/deny/stop) |
 | `tool-name-parser.test.ts` | 11 | `mcp__server__tool` parsing, `isMcpToolName` |
-| `hooks-config.test.ts` | 10 | `hooks.json` build/merge/remove, idempotency, foreign-hook preservation |
+| `hooks-config.test.ts` | 13 | `hooks.json` build/merge/remove, idempotency, foreign-hook preservation, absolute-node commands |
 | `circuit-breaker.test.ts` | 7 | State transitions, cooldown, probe success/failure |
 | `content-limits.test.ts` | 6 | Skip/truncate thresholds |
 | `dlp-masking.test.ts` | 8 | Enforcement priority, content masking |

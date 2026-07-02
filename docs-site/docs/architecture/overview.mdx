@@ -114,7 +114,9 @@ Hooks ship as **self-contained minified ESM bundles** (~125KB each, built with e
 
 | Artifact | Command | Notes |
 |----------|---------|-------|
-| Production | `node .codex/hooks/<hook>.mjs` | Single-file bundle, fast cold start |
-| Development | `npx tsx src/hooks/<hook>.ts` | JIT TypeScript, ~1.5s slower per invocation |
+| Production | `"<abs-node>" .codex/hooks/<hook>.mjs` | Single-file bundle, fast cold start |
+| Development | `"<abs-node>" node_modules/tsx/dist/cli.mjs src/hooks/<hook>.ts` | JIT TypeScript, ~1.5s slower per invocation |
+
+The installer embeds the absolute node binary (`process.execPath`) in every hook command: Codex executes hooks with a system PATH, so nvm/asdf-managed `node` would fail with exit 127. Re-run `pnpm install-hooks` (and re-trust via `/hooks`) after switching node versions.
 
 See [Contributing](../development/contributing) for the development workflow.

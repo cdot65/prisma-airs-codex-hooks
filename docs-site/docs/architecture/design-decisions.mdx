@@ -39,7 +39,7 @@ MCP tool names use Codex's `mcp__server__tool` format, parsed by `src/tool-name-
 
 ## Self-Contained Bundles
 
-Each hook builds to a single minified ESM file (~125KB, esbuild, SDK bundled in) that runs with plain `node` from any directory — no `node_modules`, no dependency on this repository. The installer copies bundles into `.codex/hooks/` (project) or `~/.codex/hooks/` (global). Hooks run as fresh processes on every event, so cold-start time matters; a bundle eliminates module resolution and keeps startup fast.
+Each hook builds to a single minified ESM file (~125KB, esbuild, SDK bundled in) that runs with plain `node` from any directory — no `node_modules`, no dependency on this repository. The installer copies bundles into `.codex/hooks/` (project) or `~/.codex/hooks/` (global) and embeds the absolute node binary in each registered command (Codex runs hooks with a system PATH, where nvm/asdf node is not resolvable). Hooks run as fresh processes on every event, so cold-start time matters; a bundle eliminates module resolution and keeps startup fast.
 
 ## Hook Trust Flow
 

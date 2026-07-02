@@ -106,7 +106,7 @@ pnpm install-hooks --global
 </TabItem>
 </Tabs>
 
-This copies the self-contained hook bundles (`*.mjs`) and `airs-config.json` into `~/.codex/hooks/`, then writes the hook registrations to `~/.codex/hooks.json`. The bundles run with plain `node` — no repository or `node_modules` dependency.
+This copies the self-contained hook bundles (`*.mjs`) and `airs-config.json` into `~/.codex/hooks/`, then writes the hook registrations to `~/.codex/hooks.json`. Hook commands embed the **absolute node binary** (`process.execPath` at install time) — Codex runs hooks with a system PATH, so a bare `node` from nvm/asdf would fail with exit 127. The bundles themselves have no repository or `node_modules` dependency. After switching node versions, re-run the installer and re-trust via `/hooks`.
 
 Without `--global`, the installer targets the current repository instead: bundles go to `<git-root>/.codex/hooks/` and registrations to `<git-root>/.codex/hooks.json`, with commands resolved via `$(git rev-parse --show-toplevel)` so hooks work when Codex starts from a subdirectory.
 
