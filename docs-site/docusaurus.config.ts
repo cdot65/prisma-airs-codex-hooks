@@ -1,13 +1,14 @@
-import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+// Gruvbox prism-react-renderer theme (CJS) — see src/css/prism-gruvbox.js
+import gruvboxTheme from './src/css/prism-gruvbox.js';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 const config: Config = {
   title: 'Prisma AIRS Codex Hooks',
   tagline: 'Prisma AIRS security scanning for the Codex CLI agentic loop',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/favicon.svg',
 
   future: {
     v4: true,
@@ -50,8 +51,11 @@ const config: Config = {
   ],
 
   themeConfig: {
+    image: 'img/logo.png',
     colorMode: {
-      respectPrefersColorScheme: true,
+      defaultMode: 'dark',
+      disableSwitch: true,
+      respectPrefersColorScheme: false,
     },
     navbar: {
       title: 'Prisma AIRS Codex Hooks',
@@ -101,9 +105,9 @@ const config: Config = {
       copyright: `Copyright © ${new Date().getFullYear()} cdot65. Built with Docusaurus.`,
     },
     prism: {
-      theme: prismThemes.github,
-      darkTheme: prismThemes.dracula,
-      additionalLanguages: ['bash', 'json', 'toml'],
+      theme: gruvboxTheme,
+      darkTheme: gruvboxTheme,
+      additionalLanguages: ['bash', 'json', 'toml', 'diff'],
     },
   } satisfies Preset.ThemeConfig,
 };
