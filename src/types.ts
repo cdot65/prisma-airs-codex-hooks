@@ -1,8 +1,5 @@
 // Re-export SDK types we use directly
-export type {
-  ScanResponse,
-  Metadata,
-} from "@cdot65/prisma-airs-sdk";
+export type { ScanResponse, Metadata } from "@cdot65/prisma-airs-sdk";
 
 /** Operational mode */
 export type Mode = "observe" | "enforce" | "bypass";
@@ -203,4 +200,3 @@ export interface CodexHooksConfig {
     [eventName: string]: CodexHookMatcherGroup[];
   };
 }
-

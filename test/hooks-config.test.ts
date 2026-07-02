@@ -3,7 +3,13 @@
 // Pure hooks.json generation/merge/removal — the installer scripts are thin
 // FS wrappers around these functions.
 import { describe, it, expect } from "vitest";
-import { buildAirsHooks, mergeAirsHooks, removeAirsHooks, projectHookCommand, globalHookCommand } from "../src/hooks-config.js";
+import {
+  buildAirsHooks,
+  mergeAirsHooks,
+  removeAirsHooks,
+  projectHookCommand,
+  globalHookCommand,
+} from "../src/hooks-config.js";
 import type { CodexHooksConfig } from "../src/types.js";
 
 const commandFor = (bundle: string) => `node "/tmp/.codex/hooks/${bundle}"`;
@@ -58,9 +64,7 @@ describe("mergeAirsHooks", () => {
   it("preserves foreign hooks in the same events", () => {
     const existing: CodexHooksConfig = {
       hooks: {
-        UserPromptSubmit: [
-          { hooks: [{ type: "command", command: "python3 ~/my-hook.py" }] },
-        ],
+        UserPromptSubmit: [{ hooks: [{ type: "command", command: "python3 ~/my-hook.py" }] }],
       },
     };
     const merged = mergeAirsHooks(existing, commandFor);
@@ -78,9 +82,7 @@ describe("mergeAirsHooks", () => {
   it("preserves unrelated events untouched", () => {
     const existing: CodexHooksConfig = {
       hooks: {
-        SessionStart: [
-          { matcher: "startup", hooks: [{ type: "command", command: "echo hi" }] },
-        ],
+        SessionStart: [{ matcher: "startup", hooks: [{ type: "command", command: "echo hi" }] }],
       },
     };
     const merged = mergeAirsHooks(existing, commandFor);
@@ -94,9 +96,7 @@ describe("removeAirsHooks", () => {
     const merged = mergeAirsHooks(
       {
         hooks: {
-          UserPromptSubmit: [
-            { hooks: [{ type: "command", command: "python3 ~/my-hook.py" }] },
-          ],
+          UserPromptSubmit: [{ hooks: [{ type: "command", command: "python3 ~/my-hook.py" }] }],
         },
       },
       commandFor,
@@ -127,7 +127,11 @@ describe("hook commands", () => {
   });
 
   it("global command uses absolute node binary and absolute bundle path", () => {
-    const cmd = globalHookCommand("pre-tool-use.mjs", "/opt/node/bin/node", "/Users/x/.codex/hooks");
+    const cmd = globalHookCommand(
+      "pre-tool-use.mjs",
+      "/opt/node/bin/node",
+      "/Users/x/.codex/hooks",
+    );
     expect(cmd).toBe('"/opt/node/bin/node" "/Users/x/.codex/hooks/pre-tool-use.mjs"');
   });
 

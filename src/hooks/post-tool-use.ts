@@ -72,7 +72,9 @@ async function main(): Promise<void> {
 
   // Observe-only by policy — log violations, warn, never block
   if (result.action === "block") {
-    console.error(`[AIRS] PostToolUse violation detected for tool=${toolName} (observe-only by policy).`);
+    console.error(
+      `[AIRS] PostToolUse violation detected for tool=${toolName} (observe-only by policy).`,
+    );
   }
 }
 

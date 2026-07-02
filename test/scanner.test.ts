@@ -17,7 +17,11 @@ vi.mock("../src/airs-client.js", () => ({
 }));
 
 import { scanPrompt, scanResponse, scanToolEvent } from "../src/scanner.js";
-import { scanPromptContent, scanResponseContent, scanToolEventContent } from "../src/airs-client.js";
+import {
+  scanPromptContent,
+  scanResponseContent,
+  scanToolEventContent,
+} from "../src/airs-client.js";
 
 const mockConfig: AirsConfig = {
   endpoint: "https://test.api.prismacloud.io",
@@ -229,7 +233,13 @@ describe("scanToolEvent", () => {
       latencyMs: 100,
     });
 
-    const result = await scanToolEvent(mockConfig, "MCP:github:get_file", '{"path":"x"}', undefined, logger);
+    const result = await scanToolEvent(
+      mockConfig,
+      "MCP:github:get_file",
+      '{"path":"x"}',
+      undefined,
+      logger,
+    );
     expect(result.action).toBe("pass");
   });
 
@@ -246,7 +256,13 @@ describe("scanToolEvent", () => {
     });
 
     const config = { ...mockConfig, mode: "enforce" as const };
-    const result = await scanToolEvent(config, "MCP:github:get_file", '{"path":"x"}', undefined, logger);
+    const result = await scanToolEvent(
+      config,
+      "MCP:github:get_file",
+      '{"path":"x"}',
+      undefined,
+      logger,
+    );
     expect(result.action).toBe("block");
     expect(result.message).toContain("MCP Tool Call");
     expect(result.message).toContain("Prompt Injection");
@@ -315,31 +331,53 @@ describe("fail_mode and correlation", () => {
   });
 
   it("scanPrompt forwards correlation IDs to the AIRS client", async () => {
-    vi.mocked(scanPromptContent).mockResolvedValue({ result: allowScanResult as any, latencyMs: 10 });
+    vi.mocked(scanPromptContent).mockResolvedValue({
+      result: allowScanResult as any,
+      latencyMs: 10,
+    });
     await scanPrompt(mockConfig, "test", logger, { sessionId: "sess-1", transactionId: "turn-1" });
-    expect(scanPromptContent).toHaveBeenCalledWith(
-      mockConfig, "test", expect.any(String), logger,
-      { sessionId: "sess-1", transactionId: "turn-1" },
-    );
+    expect(scanPromptContent).toHaveBeenCalledWith(mockConfig, "test", expect.any(String), logger, {
+      sessionId: "sess-1",
+      transactionId: "turn-1",
+    });
   });
 
   it("scanResponse forwards correlation IDs to the AIRS client", async () => {
-    vi.mocked(scanResponseContent).mockResolvedValue({ result: allowScanResult as any, latencyMs: 10 });
-    await scanResponse(mockConfig, "resp", logger, { sessionId: "sess-2", transactionId: "turn-2" });
+    vi.mocked(scanResponseContent).mockResolvedValue({
+      result: allowScanResult as any,
+      latencyMs: 10,
+    });
+    await scanResponse(mockConfig, "resp", logger, {
+      sessionId: "sess-2",
+      transactionId: "turn-2",
+    });
     expect(scanResponseContent).toHaveBeenCalledWith(
-      mockConfig, "resp", undefined, expect.any(String), logger,
+      mockConfig,
+      "resp",
+      undefined,
+      expect.any(String),
+      logger,
       { sessionId: "sess-2", transactionId: "turn-2" },
     );
   });
 
   it("scanToolEvent forwards correlation IDs to the AIRS client", async () => {
-    vi.mocked(scanToolEventContent).mockResolvedValue({ result: allowScanResult as any, latencyMs: 10 });
+    vi.mocked(scanToolEventContent).mockResolvedValue({
+      result: allowScanResult as any,
+      latencyMs: 10,
+    });
     await scanToolEvent(mockConfig, "mcp__gh__get", "in", undefined, logger, {
       sessionId: "sess-3",
       transactionId: "turn-3:tool-1",
     });
     expect(scanToolEventContent).toHaveBeenCalledWith(
-      mockConfig, "gh", "get", "in", undefined, expect.any(String), logger,
+      mockConfig,
+      "gh",
+      "get",
+      "in",
+      undefined,
+      expect.any(String),
+      logger,
       { sessionId: "sess-3", transactionId: "turn-3:tool-1" },
     );
   });

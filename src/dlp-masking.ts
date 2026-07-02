@@ -34,10 +34,7 @@ export function getEnforcementAction(
 }
 
 /** Simple masking: replace sensitive substrings with asterisks */
-export function maskContent(
-  content: string,
-  patterns: string[],
-): string {
+export function maskContent(content: string, patterns: string[]): string {
   let masked = content;
   for (const pattern of patterns) {
     if (pattern && masked.includes(pattern)) {

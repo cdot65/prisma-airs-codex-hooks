@@ -3,7 +3,8 @@ import { extractCode, joinCodeBlocks } from "../src/code-extractor.js";
 
 describe("extractCode", () => {
   it("extracts fenced python code block", () => {
-    const input = "Here's a function:\n\n```python\ndef hello():\n    print('hi')\n```\n\nThat's it.";
+    const input =
+      "Here's a function:\n\n```python\ndef hello():\n    print('hi')\n```\n\nThat's it.";
     const result = extractCode(input);
     expect(result.codeBlocks).toHaveLength(1);
     expect(result.codeBlocks[0]).toContain("def hello()");
@@ -44,8 +45,7 @@ describe("extractCode", () => {
   });
 
   it("handles mixed NL + code + NL + code", () => {
-    const input =
-      "First:\n\n```python\na = 1\n```\n\nThen:\n\n```python\nb = 2\n```\n\nEnd.";
+    const input = "First:\n\n```python\na = 1\n```\n\nThen:\n\n```python\nb = 2\n```\n\nEnd.";
     const result = extractCode(input);
     expect(result.codeBlocks).toHaveLength(2);
     expect(result.naturalLanguage).toContain("First:");

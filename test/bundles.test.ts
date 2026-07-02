@@ -11,12 +11,7 @@ import { tmpdir } from "node:os";
 const PROJECT_ROOT = resolve(import.meta.dirname, "..");
 const BUNDLE_DIR = join(PROJECT_ROOT, "dist", "hooks");
 
-const BUNDLES = [
-  "user-prompt-submit.mjs",
-  "pre-tool-use.mjs",
-  "post-tool-use.mjs",
-  "stop.mjs",
-];
+const BUNDLES = ["user-prompt-submit.mjs", "pre-tool-use.mjs", "post-tool-use.mjs", "stop.mjs"];
 
 const haveBundles = BUNDLES.every((b) => existsSync(join(BUNDLE_DIR, b)));
 
@@ -73,43 +68,55 @@ describe.skipIf(!haveBundles)("hook bundles (dist/hooks/*.mjs)", () => {
   });
 
   it("user-prompt-submit bundle runs standalone (fail-open on unreachable API)", () => {
-    const run = runBundle("user-prompt-submit.mjs", JSON.stringify({
-      hook_event_name: "UserPromptSubmit",
-      prompt: "What is 2+2?",
-    }));
+    const run = runBundle(
+      "user-prompt-submit.mjs",
+      JSON.stringify({
+        hook_event_name: "UserPromptSubmit",
+        prompt: "What is 2+2?",
+      }),
+    );
     expect(run.stderr).not.toMatch(/Cannot find (module|package)/);
     expect(run.exitCode).toBe(0);
     expect(JSON.parse(run.stdout)).toEqual({ continue: true });
   });
 
   it("pre-tool-use bundle runs standalone", () => {
-    const run = runBundle("pre-tool-use.mjs", JSON.stringify({
-      hook_event_name: "PreToolUse",
-      tool_name: "mcp__github__get_file_contents",
-      tool_input: { path: "README.md" },
-    }));
+    const run = runBundle(
+      "pre-tool-use.mjs",
+      JSON.stringify({
+        hook_event_name: "PreToolUse",
+        tool_name: "mcp__github__get_file_contents",
+        tool_input: { path: "README.md" },
+      }),
+    );
     expect(run.stderr).not.toMatch(/Cannot find (module|package)/);
     expect(run.exitCode).toBe(0);
     expect(run.stdout).toBe("");
   });
 
   it("post-tool-use bundle runs standalone", () => {
-    const run = runBundle("post-tool-use.mjs", JSON.stringify({
-      hook_event_name: "PostToolUse",
-      tool_name: "mcp__test__tool",
-      tool_input: {},
-      tool_response: "safe output",
-    }));
+    const run = runBundle(
+      "post-tool-use.mjs",
+      JSON.stringify({
+        hook_event_name: "PostToolUse",
+        tool_name: "mcp__test__tool",
+        tool_input: {},
+        tool_response: "safe output",
+      }),
+    );
     expect(run.stderr).not.toMatch(/Cannot find (module|package)/);
     expect(run.exitCode).toBe(0);
     expect(run.stdout).toBe("");
   });
 
   it("stop bundle runs standalone", () => {
-    const run = runBundle("stop.mjs", JSON.stringify({
-      hook_event_name: "Stop",
-      last_assistant_message: "The answer is 4.",
-    }));
+    const run = runBundle(
+      "stop.mjs",
+      JSON.stringify({
+        hook_event_name: "Stop",
+        last_assistant_message: "The answer is 4.",
+      }),
+    );
     expect(run.stderr).not.toMatch(/Cannot find (module|package)/);
     expect(run.exitCode).toBe(0);
     expect(JSON.parse(run.stdout)).toEqual({ continue: true });

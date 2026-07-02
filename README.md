@@ -6,9 +6,9 @@ Built on the [`@cdot65/prisma-airs-sdk`](https://github.com/cdot65/prisma-airs-s
 
 ## Coverage
 
-| Prompt | Response | Streaming | Pre-tool (MCP) | Post-tool (MCP) | Bash / apply_patch |
-|:------:|:--------:|:---------:|:--------------:|:---------------:|:------------------:|
-| ✅ blocks | ⚠️ post-stream | ❌ | ✅ blocks | 👁 observe | — by design |
+|  Prompt   |    Response    | Streaming | Pre-tool (MCP) | Post-tool (MCP) | Bash / apply_patch |
+| :-------: | :------------: | :-------: | :------------: | :-------------: | :----------------: |
+| ✅ blocks | ⚠️ post-stream |    ❌     |   ✅ blocks    |    👁 observe    |    — by design     |
 
 - **Prompt** — `UserPromptSubmit` scans prompts before Codex processes them; blocks with `{"decision":"block"}`.
 - **Pre-tool** — `PreToolUse` (matcher `mcp__.*`) scans MCP tool inputs; denies via `hookSpecificOutput.permissionDecision`.
@@ -68,23 +68,23 @@ hooks = true
 
 `airs-config.json` lives at `.codex/hooks/airs-config.json` (project, found via parent-directory walk-up) or `~/.codex/hooks/airs-config.json` (global).
 
-| Key | Default | Description |
-|-----|---------|-------------|
-| `mode` | `enforce` | `observe` (log only) / `enforce` (block on detection) / `bypass` (skip) |
-| `fail_mode` | `open` | `open`: never block when AIRS is unreachable; `closed`: block prompt/tool scans on config/API errors (Stop always fails open) |
-| `profiles.prompt/response/tool` | env vars | Per-direction AIRS security profiles |
-| `content_limits.max_scan_bytes` | 51200 | Skip scanning above this size |
-| `content_limits.truncate_bytes` | 20000 | Truncate content before scanning |
-| `circuit_breaker` | enabled, 5 failures / 60s | Temporary bypass after consecutive AIRS failures |
+| Key                             | Default                   | Description                                                                                                                   |
+| ------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `mode`                          | `enforce`                 | `observe` (log only) / `enforce` (block on detection) / `bypass` (skip)                                                       |
+| `fail_mode`                     | `open`                    | `open`: never block when AIRS is unreachable; `closed`: block prompt/tool scans on config/API errors (Stop always fails open) |
+| `profiles.prompt/response/tool` | env vars                  | Per-direction AIRS security profiles                                                                                          |
+| `content_limits.max_scan_bytes` | 51200                     | Skip scanning above this size                                                                                                 |
+| `content_limits.truncate_bytes` | 20000                     | Truncate content before scanning                                                                                              |
+| `circuit_breaker`               | enabled, 5 failures / 60s | Temporary bypass after consecutive AIRS failures                                                                              |
 
 Environment variables:
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `PRISMA_AIRS_API_KEY` | Yes | x-pan-token for the AIRS API |
-| `PRISMA_AIRS_PROFILE_NAME` | Recommended | Security profile for all directions |
-| `PRISMA_AIRS_API_ENDPOINT` | No | Regional base URL (defaults to US) |
-| `PRISMA_AIRS_PROMPT_PROFILE` / `_RESPONSE_PROFILE` / `_TOOL_PROFILE` | No | Per-direction profile overrides |
+| Variable                                                             | Required    | Description                         |
+| -------------------------------------------------------------------- | ----------- | ----------------------------------- |
+| `PRISMA_AIRS_API_KEY`                                                | Yes         | x-pan-token for the AIRS API        |
+| `PRISMA_AIRS_PROFILE_NAME`                                           | Recommended | Security profile for all directions |
+| `PRISMA_AIRS_API_ENDPOINT`                                           | No          | Regional base URL (defaults to US)  |
+| `PRISMA_AIRS_PROMPT_PROFILE` / `_RESPONSE_PROFILE` / `_TOOL_PROFILE` | No          | Per-direction profile overrides     |
 
 ## AIRS correlation
 

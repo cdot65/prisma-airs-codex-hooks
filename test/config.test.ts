@@ -64,9 +64,7 @@ describe("config", () => {
   });
 
   it("rejects missing config file", () => {
-    expect(() => loadConfig("/nonexistent/path.json")).toThrow(
-      "Failed to read config file",
-    );
+    expect(() => loadConfig("/nonexistent/path.json")).toThrow("Failed to read config file");
   });
 
   it("resolves env var references in endpoint", () => {

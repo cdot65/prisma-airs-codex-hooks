@@ -92,9 +92,7 @@ export function loadConfig(configPath?: string): AirsConfig {
 
   // Validate mode
   if (!VALID_MODES.includes(config.mode)) {
-    throw new Error(
-      `Invalid mode "${config.mode}". Must be one of: ${VALID_MODES.join(", ")}`,
-    );
+    throw new Error(`Invalid mode "${config.mode}". Must be one of: ${VALID_MODES.join(", ")}`);
   }
 
   // Validate fail_mode (default: open)
@@ -114,9 +112,7 @@ export function loadConfig(configPath?: string): AirsConfig {
   // Validate API key env var is set
   const apiKey = process.env[config.apiKeyEnvVar];
   if (!apiKey || apiKey.trim() === "") {
-    throw new Error(
-      `API key environment variable "${config.apiKeyEnvVar}" is not set or empty`,
-    );
+    throw new Error(`API key environment variable "${config.apiKeyEnvVar}" is not set or empty`);
   }
 
   // Validate profiles

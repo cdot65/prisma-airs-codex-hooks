@@ -45,6 +45,10 @@
     "build": "tsc -p tsconfig.build.json && node scripts/build-bundles.mjs",
     "prepack": "pnpm run build",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "secrets": "secretlint --secretlintignore .gitignore \"**/*\"",
     "validate-connection": "tsx scripts/validate-connection.ts",
     "validate-detection": "tsx scripts/validate-detection.ts",
     "install-hooks": "tsx scripts/install-hooks.ts",
@@ -52,17 +56,26 @@
     "verify-hooks": "tsx scripts/verify-hooks.ts",
     "stats": "tsx scripts/airs-stats.ts",
     "docs:serve": "pnpm --filter docs-site start",
-    "docs:build": "pnpm --filter docs-site build"
+    "docs:build": "pnpm --filter docs-site build",
+    "prepare": "husky"
   },
   "dependencies": {
     "@cdot65/prisma-airs-sdk": "^0.6.7",
     "tsx": "^4.19.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@secretlint/secretlint-rule-preset-recommend": "^13.0.2",
     "@types/node": "^25.5.0",
     "@vitest/coverage-v8": "^2.1.9",
     "esbuild": "0.28.1",
+    "eslint": "^10.6.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8",
+    "prettier": "^3.9.4",
+    "secretlint": "^13.0.2",
     "typescript": "^5.5.0",
+    "typescript-eslint": "^8.62.1",
     "vitest": "^2.1.0"
   }
 }
