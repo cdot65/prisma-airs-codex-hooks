@@ -382,3 +382,32 @@ describe("fail_mode and correlation", () => {
     );
   });
 });
+
+describe("block message separators", () => {
+  let logger: Logger;
+
+  beforeEach(() => {
+    process.env.PRISMA_AIRS_API_KEY = "test-key";
+    logger = new Logger("/dev/null");
+    vi.mocked(scanPromptContent).mockReset();
+  });
+
+  afterEach(() => {
+    delete process.env.PRISMA_AIRS_API_KEY;
+  });
+
+  it("every separator line is exactly 39 heavy-line chars (fits Codex panel)", async () => {
+    vi.mocked(scanPromptContent).mockResolvedValue({
+      result: blockScanResult as any,
+      latencyMs: 100,
+    });
+
+    const config = { ...mockConfig, mode: "enforce" as const };
+    const result = await scanPrompt(config, "test prompt", logger);
+    const separators = (result.message ?? "").split("\n").filter((l) => l.includes("━"));
+    expect(separators.length).toBeGreaterThan(0);
+    for (const line of separators) {
+      expect(line).toBe("━".repeat(39));
+    }
+  });
+});

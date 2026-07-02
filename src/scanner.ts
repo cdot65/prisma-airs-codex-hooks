@@ -12,6 +12,9 @@ import { extractCode, joinCodeBlocks } from "./code-extractor.js";
 import { Logger } from "./logger.js";
 import { getEnforcementAction, DEFAULT_ENFORCEMENT } from "./dlp-masking.js";
 
+/** Separator sized to fit the Codex terminal panel without wrapping */
+const SEPARATOR = "━".repeat(39);
+
 // ---------------------------------------------------------------------------
 // Human-readable detection labels for UX messages
 // ---------------------------------------------------------------------------
@@ -155,9 +158,9 @@ function buildPromptBlockMessage(
   const detectionList = detections.map(friendlyDetectionName).join(", ");
   return [
     "",
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    SEPARATOR,
     "  Prisma AIRS — Prompt Blocked",
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    SEPARATOR,
     "",
     `  What happened:  Your prompt was flagged by the ${detectionList} security check.`,
     `  Category:       ${category}`,
@@ -169,7 +172,7 @@ function buildPromptBlockMessage(
     "    - If you believe this is a false positive, contact your security team",
     `      and reference Scan ID: ${scanId}`,
     "",
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    SEPARATOR,
     "",
   ].join("\n");
 }
@@ -183,9 +186,9 @@ function buildResponseBlockMessage(
   const detectionList = detections.map(friendlyDetectionName).join(", ");
   return [
     "",
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    SEPARATOR,
     "  Prisma AIRS — Response Flagged (observe-only)",
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    SEPARATOR,
     "",
     `  What happened:  The AI response was flagged by the ${detectionList} security check.`,
     `  Category:       ${category}`,
@@ -199,7 +202,7 @@ function buildResponseBlockMessage(
     "    - If you believe this is a false positive, contact your security team",
     `      and reference Scan ID: ${scanId}`,
     "",
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    SEPARATOR,
     "",
   ].join("\n");
 }
@@ -214,9 +217,9 @@ function buildToolBlockMessage(
   const detectionList = detections.map(friendlyDetectionName).join(", ");
   return [
     "",
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    SEPARATOR,
     "  Prisma AIRS — MCP Tool Call Blocked",
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    SEPARATOR,
     "",
     `  Tool:       ${toolName}`,
     `  What happened:  The tool input was flagged by the ${detectionList} security check.`,
@@ -228,7 +231,7 @@ function buildToolBlockMessage(
     "    - If you believe this is a false positive, contact your security team",
     `      and reference Scan ID: ${scanId}`,
     "",
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    SEPARATOR,
     "",
   ].join("\n");
 }
@@ -237,14 +240,14 @@ function buildMaskedMessage(maskedServices: string[]): string {
   const names = maskedServices.map(friendlyDetectionName).join(", ");
   return [
     "",
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    SEPARATOR,
     "  Prisma AIRS — Sensitive Data Masked",
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    SEPARATOR,
     "",
     `  ${names} detected sensitive data in your content.`,
     "  The flagged patterns have been masked with asterisks.",
     "",
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    SEPARATOR,
     "",
   ].join("\n");
 }
