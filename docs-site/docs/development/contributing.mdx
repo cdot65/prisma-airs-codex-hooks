@@ -26,17 +26,17 @@ pnpm typecheck  # type check
 
 ### Development Mode Hooks
 
-For rapid iteration, point `.codex/hooks.json` at TypeScript source (no rebuild needed):
+For rapid iteration, point `.codex/hooks.json` at TypeScript source (no rebuild needed). Use **absolute paths** for both node and the tsx CLI — Codex runs hook commands with a system PATH, so nvm/asdf-managed `node` (and `npx`) are not resolvable and fail with exit 127:
 
 ```json
 {
   "type": "command",
-  "command": "npx tsx \"/path/to/src/hooks/user-prompt-submit.ts\"",
+  "command": "\"/absolute/path/to/node\" \"/path/to/repo/node_modules/tsx/dist/cli.mjs\" \"/path/to/repo/src/hooks/user-prompt-submit.ts\"",
   "timeout": 30
 }
 ```
 
-This adds ~1.5s per invocation. Switch back to the bundles for production:
+Find your node binary with `command -v node`. This adds ~1.5s per invocation. Switch back to the bundles for production:
 
 ```bash
 pnpm build
@@ -58,6 +58,22 @@ Tests include:
 
 - **Unit tests**: config, scanner, code-extractor, circuit-breaker, DLP masking, logger, log rotation, tool-name parser, codex adapter, hooks-config
 - **Integration tests**: end-to-end hook execution via `npx tsx`, compiled `node dist/`, and standalone bundle runs with piped JSON
+
+### Pre-Commit Gate
+
+Husky runs on every commit:
+
+1. **lint-staged** on staged files — `prettier --write`, `secretlint` (secrets scan), and `eslint --fix` for TypeScript/MJS
+2. **`pnpm typecheck`** across the repo
+
+The same checks run in CI's `lint` job (`pnpm lint`, `pnpm format:check`, `pnpm secrets`). Run them manually anytime:
+
+```bash
+pnpm lint          # eslint
+pnpm format        # prettier --write
+pnpm format:check  # prettier --check
+pnpm secrets       # secretlint
+```
 
 ### Adding a Test
 
@@ -92,7 +108,7 @@ docs-site/              Docusaurus documentation
 ## Pull Request Guidelines
 
 - Branch from `main`
-- Ensure `pnpm test` and `pnpm typecheck` pass
+- Ensure `pnpm test`, `pnpm typecheck`, and `pnpm lint` pass (the pre-commit hook enforces lint/format/secrets/typecheck)
 - Include tests for new functionality
 - Run `pnpm build` to verify compilation and bundling
 
